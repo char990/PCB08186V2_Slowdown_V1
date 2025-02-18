@@ -7,10 +7,11 @@
 #include <GetVer.h>
 #include "stdio.h"
 
+#define BUILD_NUMBER(yyMMdd, HHmm) (yyMMdd * 10000UL + HHmm)
 
-const uint32_t FW_BUILD = 2411181915;     // yyMMddHHmm
+const uint32_t FW_BUILD = BUILD_NUMBER(250218, 1332); // yyMMddHHmm
 
-const uint16_t FW_VERSION = 0x0100;        // 0130, max size = 4
+const uint16_t FW_VERSION = 0x0100; // 0130, max size = 4
 
 int GetVer(char *buf)
 {
@@ -19,5 +20,5 @@ int GetVer(char *buf)
 #else
     const char *dr = "Release";
 #endif
-   return sprintf(buf, "%s Version:%04x Build:%lu", dr, FW_VERSION, FW_BUILD);
+    return sprintf(buf, "%s Version:%04x Build:%lu", dr, FW_VERSION, FW_BUILD);
 }

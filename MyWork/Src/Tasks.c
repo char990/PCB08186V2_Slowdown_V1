@@ -5,6 +5,7 @@
  *      Author: lq
  */
 #include "Tasks.h"
+#include "tim.h"
 #include "SerialPort.h"
 #include "TaskHb.h"
 #include "TaskFlasher.h"
@@ -25,6 +26,7 @@ uint16_t st_flasherCurrent[2];
 
 void TasksRun()
 {
+	HAL_TIM_Base_Start(&htim14);
 	SerialPortInit();
 	TaskHbInit();
 	TaskPtcInit();

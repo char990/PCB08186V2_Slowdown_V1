@@ -34,8 +34,8 @@ extern "C"
 #define LUX_BACK 1
     extern uint16_t st_lux[2];
 
-#define FLASHER_UPPER 0
-#define FLASHER_LOWER 1
+#define PORT_HC1 0
+#define PORT_HC2 1
     extern uint16_t st_flasherCurrent[2];
 
 #ifdef __cplusplus

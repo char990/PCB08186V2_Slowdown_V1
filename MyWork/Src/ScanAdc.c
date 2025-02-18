@@ -13,7 +13,7 @@
 
 int Get_mv(adcval_t adv, adcval_t ref)
 {
-	return adv * 3300UL / 4096;
+	//return adv * 3300UL / 4096;
 	return (ref == 0) ? (0) : ((VREFINT_CAL_VREF * (*VREFINT_CAL_ADDR) / 4096) * adv / ref);
 }
 

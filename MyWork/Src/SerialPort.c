@@ -37,51 +37,26 @@ static volatile uint8_t sp_rx_buf[TOTAL_SERIALPORT][UART_RX_BUF_SIZE];
 #define HAL_ERROR_FLAG (1 << 31)
 
 extern UART_HandleTypeDef huart1;
+extern UART_HandleTypeDef huart2;
 extern DMA_HandleTypeDef hdma_usart1_rx;
 extern DMA_HandleTypeDef hdma_usart1_tx;
+extern DMA_HandleTypeDef hdma_usart2_rx;
+extern DMA_HandleTypeDef hdma_usart2_tx;
 extern void Error_Handler();
-
-/* USART1 init function */
-
-void My_USART1_UART_Init(uint32_t bps)
-{
-
-	/* USER CODE BEGIN USART1_Init 0 */
-
-	/* USER CODE END USART1_Init 0 */
-
-	/* USER CODE BEGIN USART1_Init 1 */
-
-	/* USER CODE END USART1_Init 1 */
-	huart1.Instance = USART1;
-	huart1.Init.BaudRate = bps;
-	huart1.Init.WordLength = UART_WORDLENGTH_8B;
-	huart1.Init.StopBits = UART_STOPBITS_1;
-	huart1.Init.Parity = UART_PARITY_NONE;
-	huart1.Init.Mode = UART_MODE_TX_RX;
-	huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-	huart1.Init.OverSampling = UART_OVERSAMPLING_16;
-	huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-	huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-	if (HAL_RS485Ex_Init(&huart1, UART_DE_POLARITY_HIGH, 0, 0) != HAL_OK)
-	{
-		Error_Handler();
-	}
-	/* USER CODE BEGIN USART1_Init 2 */
-
-	/* USER CODE END USART1_Init 2 */
-}
+extern void MX_USART1_UART_Init();
+extern void MX_USART2_UART_Init();
 
 SerialPort_t serialPort[TOTAL_SERIALPORT];
 
 UART_HandleTypeDef *HUARTS[TOTAL_SERIALPORT] =
 	{
 		&huart1,
-
+		&huart2,
 };
 DMA_HandleTypeDef *HDMA_UART_RXS[TOTAL_SERIALPORT] =
 	{
 		&hdma_usart1_rx,
+		&hdma_usart2_rx,
 };
 
 void SerialPortInit()
@@ -94,17 +69,31 @@ void SerialPortInit()
 		serialPort[i].rx_dma_buf = &sp_rx_dma_buf[i][0];
 		RB_Init(&serialPort[i].rx_ringbuf, &sp_rx_buf[i][0], UART_RX_BUF_SIZE);
 		serialPort[i].error_code = HAL_UART_ERROR_NONE;
+		serialPort[i].tx_timeout = TX_TIMEOUT_BPS(serialPort[i].huart->Init.BaudRate);
 	}
 }
 
-void SerialPortSetBps(SerialPort_t *sp, uint32_t v)
+void SerialPortReInit(SerialPort_t *sp)
 {
 	HAL_UART_Abort(sp->huart);
 	RB_Clear(&sp->rx_ringbuf);
 	HAL_UART_DeInit(sp->huart);
-	My_USART1_UART_Init(v);
+	if(sp->huart == &huart1)
+	{
+		MX_USART1_UART_Init();
+	}
+	else if(sp->huart == &huart2)
+	{
+		MX_USART2_UART_Init();
+	}
+	else
+	{
+		while (1)
+		{
+			/* code */
+		}
+	}
 	sp->error_code = HAL_UART_ERROR_NONE;
-	sp->tx_timeout = TX_TIMEOUT_BPS(v);
 }
 
 void SerialPortStartRx(SerialPort_t *sp)
@@ -148,7 +137,7 @@ void SpErrorCheck(SerialPort_t *sp)
 			((sp->error_code & HAL_ERROR_FLAG) == 0 &&
 			 (sp->error_code & (HAL_UART_ERROR_DMA | HAL_UART_ERROR_RTO))))
 		{
-			SerialPortSetBps(sp, sp->huart->Init.BaudRate);
+			SerialPortReInit(sp);
 		}
 		SerialPortStartRx(sp);
 	}

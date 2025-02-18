@@ -32,7 +32,8 @@ myPt_t ptCli;
 msTmr_t tmrCli;
 #define this_tmr (&tmrCli)
 
-#define this_sp (&serialPort[1])
+SerialPort_t *spCli = &serialPort[1];
+#define this_sp spCli
 
 #define CLI_RX_BUF_SIZE 32
 static char cliRxBuf[CLI_RX_BUF_SIZE]; /* The command string.*/
@@ -42,6 +43,7 @@ void PrintVersion()
 {
 	char buf[36];
 	GetVer(buf);
+	MyPutchar('\n');
 	MyPuts(buf);
 	MyPutchar('\n');
 }
@@ -113,43 +115,49 @@ CMD_RET_t TestPwm(int argc, char **argv)
 CMD_RET_t TestAd(int argc, char **argv)
 {
 	HAL_StatusTypeDef st;
-	st = HAL_ADCEx_Calibration_Start(&hadc);
+	st = HAL_ADCEx_Calibration_Start(scanAdc.hadc);
 	if (st != HAL_OK)
 	{
 		MyPrintf("\nADCEx_Calibration Failed=%u\n", st);
 		return SUCCESS_WITHOUT_MSG;
 	}
-	SetDuty(1, 255);
-	SetDuty(0, 255);
-	HAL_Delay(10);
-	uint16_t adcv[3];
+	//SetDuty(1, 255);
+	//SetDuty(0, 255);
+	//HAL_Delay(10);
+	int r = RunAdc();
+
+	uint16_t adcv[ADC_SIZE];
 	memset(adcv, 0xFF, sizeof(adcv));
-	st = HAL_ADC_Start_DMA(&hadc, (uint32_t *)adcv, 3);
-	while (hadc.State & HAL_ADC_STATE_REG_BUSY)
-		;
-	HAL_Delay(1);
-	HAL_ADC_Stop_DMA(&hadc);
-	SetDuty(1, 0);
-	SetDuty(0, 0);
-	if (hadc.State & (HAL_ADC_STATE_ERROR_DMA | HAL_ADC_STATE_ERROR_INTERNAL | HAL_ADC_STATE_ERROR_CONFIG))
+	st = HAL_ADC_Start_DMA(scanAdc.hadc, (uint32_t *)adcv, ADC_SIZE);
+	while (scanAdc.hadc->State & HAL_ADC_STATE_REG_BUSY)
 	{
-		MyPrintf("ADC error: ST = 0x%08X\n", hadc.State);
+		HAL_Delay(1);
 	}
-	if (hadc.State & HAL_ADC_STATE_REG_OVR)
+	HAL_ADC_Stop_DMA(scanAdc.hadc);
+	//SetDuty(1, 0);
+	//SetDuty(0, 0);
+	if (r != 0)
 	{
-		MyPrintf("ADC overrun occurred: ST = 0x%08X\n", hadc.State);
+		MyPrintf("ADC error: ST = 0x%08X\n", scanAdc.hadc->State);
 	}
-	if (hadc.State & HAL_ADC_STATE_REG_EOC)
+	else
 	{
-		MyPrintf("ADC completed: ST = 0x%08X\n", hadc.State);
+		MyPuts("\nADC:");
+		for (int i = 0; i < ADC_SIZE; i++)
+		{
+			MyPrintf(" [%u] = %u%c", i, scanAdc.dma_buf[i], (i == ADC_SIZE - 1) ? '\n' : ',');
+		}
+		MyPuts("HC:");
+		for (int i = 0; i < ADC_HC_SIZE; i++)
+		{
+			MyPrintf(" [%d] = %u mv = %d ma%c",
+					i+1,
+					Get_mv(scanAdc.dma_buf[i], scanAdc.dma_buf[ADC_VREF]),
+					GetHCmA(i),
+					(i == ADC_HC_SIZE - 1) ? '\n' : ',');
+		}
+		MyPrintf("T = %d('C)\n", GetTcpu());
 	}
-	MyPrintf("ad[0]=%u, [1]=%u, [2]=%u\n", adcv[0], adcv[1], adcv[2]);
-
-	MyPrintf("mv[0]=%u, [1]=%u, [2]=%u\n",
-			 Get_mv(adcv[0], adcv[2]),
-			 Get_mv(adcv[1], adcv[2]),
-			 Get_mv(adcv[2], adcv[2]));
-
 	return SUCCESS_WITHOUT_MSG;
 }
 
@@ -191,6 +199,7 @@ CMD_RET_t TestI2C(int argc, char **argv)
 	return SUCCESS_WITHOUT_MSG;
 }
 
+#if 0
 CMD_RET_t MCP9808(int argc, char **argv)
 {
 	I2C_HandleTypeDef *hi2c = &hi2c1;
@@ -254,6 +263,7 @@ CMD_RET_t MCP9808(int argc, char **argv)
 	}
 	return SUCCESS_WITHOUT_MSG;
 }
+#endif
 
 CMD_RET_t OPT4001(int argc, char **argv)
 {
@@ -292,9 +302,11 @@ command_t CLI_CMD[] =
 		 "\r\ntesti2c [addr len]"
 		 "\r\n  testi2c : List all slaves on I2C"
 		 "\r\n  testi2c 0x45 32: Print regs[0-31](max=256) of slave[0x45] on I2C"},
-		{"MCP9808", MCP9808,
+#if 0
+		 {"MCP9808", MCP9808,
 		 "\r\nMCP9808 address"
 		 "\r\n  List all register in MCP9808 and print temperature"},
+#endif
 		{"OPT4001", OPT4001,
 		 "\r\nOPT4001"
 		 "\r\n  Print st_lux"},
@@ -319,7 +331,7 @@ CMD_RET_t Help(int argc, char **argv)
 	return ret;
 }
 
-uint8_t TaskPtc()
+uint8_t TaskCli()
 {
 	PT_BEGIN(this_pt);
 	PrintVersion();
@@ -327,12 +339,8 @@ uint8_t TaskPtc()
 	{
 		PT_WAIT_UNTIL(this_pt, SpAnyChars(this_sp));
 		{
-			char sp1rx = SpGetchar(this_sp);
-#if 0
-			SpPutchar(this_sp, sp1rx);
-			continue;
-#else
-			if (sp1rx == KEY_LF || sp1rx == KEY_CR)
+			char rxc = SpGetchar(this_sp);
+			if (rxc == KEY_LF || rxc == KEY_CR)
 			{
 				cliRxBuf[cliRxLen] = '\0';
 				MyPuts("\r\n");
@@ -363,7 +371,7 @@ uint8_t TaskPtc()
 				 is received.  This else clause performs the processing if any other
 				 character is received. */
 
-				if (sp1rx == '\b')
+				if (rxc == '\b')
 				{
 					/* Backspace was pressed.  Erase the last character in the input
 					 buffer - if there are any. */
@@ -382,9 +390,9 @@ uint8_t TaskPtc()
 					 string will be passed to the command interpreter. */
 					if (cliRxLen < CLI_RX_BUF_SIZE - 1)
 					{
-						cliRxBuf[cliRxLen++] = sp1rx;
+						cliRxBuf[cliRxLen++] = rxc;
 						cliRxBuf[cliRxLen] = '\0';
-						SpPutchar(this_sp, sp1rx);
+						SpPutchar(this_sp, rxc);
 					}
 					else
 					{
@@ -392,7 +400,6 @@ uint8_t TaskPtc()
 					}
 				}
 			}
-#endif
 		}
 	}
 	PT_END(this_pt);
@@ -404,9 +411,9 @@ static void this_Init()
 	cliRxBuf[0] = '\0';
 }
 
-void TaskPtcInit()
+void TaskCliInit()
 {
-	SerialPortStartRx(this_sp);
-	PT_Reset(this_pt);
 	this_Init();
+	PT_Reset(this_pt);
+	SerialPortStartRx(this_sp);
 }

@@ -98,7 +98,7 @@ void SetHcAllDuty(uint8_t duty1, uint8_t duty2)
 	__enable_irq();
 }
 
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+void PwmCallback(TIM_HandleTypeDef *htim)
 {
 	if (htim == pwm[0].htim)
 	{

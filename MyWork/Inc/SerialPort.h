@@ -22,7 +22,7 @@ extern "C"
 		uint32_t tx_timeout;
 	} SerialPort_t;
 
-#define TOTAL_SERIALPORT 1
+#define TOTAL_SERIALPORT 2
 
 	extern SerialPort_t serialPort[TOTAL_SERIALPORT];
 
@@ -31,7 +31,7 @@ extern "C"
 	SerialPort_t *GetSerialPort(UART_HandleTypeDef *huart);
 	int IsSerialPortRx(SerialPort_t *sp);
 
-	void SerialPortSetBps(SerialPort_t *sp, uint32_t v);
+	void SerialPortReInit(SerialPort_t *sp);
 
 	void SerialPortStartRx(SerialPort_t *sp);
 

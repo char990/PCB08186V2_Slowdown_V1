@@ -31,7 +31,8 @@ myPt_t ptPtc;
 msTmr_t tmrPtc;
 #define this_tmr (&tmrPtc)
 
-#define this_sp (&serialPort[0])
+SerialPort_t *spPtc = &serialPort[0];
+#define this_sp spPtc
 
 // All commands
 #define CMD_REQ_ST 0x35
@@ -132,8 +133,8 @@ int CMD_ReqSt(int len)
 	p = Cnvt_PutU16(st_lux[LUX_FRONT], p); // LUX_FRONT
 	p = Cnvt_PutU16(st_lux[LUX_BACK], p);  // LUX_BACK
 	// increase by 1 to avoid to report 0
-	p = Cnvt_PutU16(st_flasherCurrent[FLASHER_UPPER] + 1, p); // upper flasher current
-	p = Cnvt_PutU16(st_flasherCurrent[FLASHER_LOWER] + 1, p); // lower flasher current
+	p = Cnvt_PutU16(st_flasherCurrent[PORT_HC1] + 1, p); // upper flasher current
+	p = Cnvt_PutU16(st_flasherCurrent[PORT_HC2] + 1, p); // lower flasher current
 	*p++ = GetTcpu() | st_bootup;
 	st_bootup = 0;
 	return p - ptcTxBufHalf;
@@ -154,7 +155,7 @@ int CMD_SetConspicuity(int len)
 
 void TaskPtcInit()
 {
-	SerialPortStartRx(this_sp);
-	PT_Reset(this_pt);
 	this_Init();
+	PT_Reset(this_pt);
+	SerialPortStartRx(this_sp);
 }

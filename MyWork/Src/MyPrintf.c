@@ -11,6 +11,8 @@
 
 #include "SerialPort.h"
 
+extern SerialPort_t *spCli;
+
 #define MYPRINTF_BUF_SIZE 256
 int MyPrintf(const char *fmt, ...)
 {
@@ -25,12 +27,12 @@ int MyPrintf(const char *fmt, ...)
 
 int MyPutchar(const char c)
 {
-	return SpPutchar(&serialPort[0], c);
+	return SpPutchar(spCli, c);
 }
 
 int MyPuts(const char *s)
 {
-	return SpPuts(&serialPort[0], s);
+	return SpPuts(spCli, s);
 }
 
 static void Print_abcd(const char *abcd)

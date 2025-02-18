@@ -22,13 +22,14 @@
 #include "crc.h"
 #include "dma.h"
 #include "i2c.h"
+#include "iwdg.h"
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "Tasks.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -55,7 +56,7 @@
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-extern void My_USART1_UART_Init(uint32_t bps);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -101,6 +102,7 @@ int main(void)
   MX_ADC_Init();
   MX_TIM14_Init();
   MX_USART2_UART_Init();
+  MX_IWDG_Init();
   /* USER CODE BEGIN 2 */
 #endif
   MX_GPIO_Init();
@@ -109,13 +111,14 @@ int main(void)
   MX_I2C1_Init();
   MX_TIM16_Init();
   MX_TIM17_Init();
-  My_USART1_UART_Init(38400);
+  MX_USART1_UART_Init();
   MX_ADC_Init();
   MX_TIM14_Init();
+  MX_USART2_UART_Init();
 #ifndef DEBUG
   MX_IWDG_Init();
 #endif
-  HAL_TIM_Base_Start(&htim14);
+  extern void TasksRun(void);
   TasksRun();
 
   /* We should never get here as control is now taken by the TasksRun() */
@@ -145,8 +148,9 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL13;
@@ -198,7 +202,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
-
+  else
+  {
+	  extern void PwmCallback(TIM_HandleTypeDef *htim);
+	  PwmCallback(htim);
+  }
   /* USER CODE END Callback 1 */
 }
 

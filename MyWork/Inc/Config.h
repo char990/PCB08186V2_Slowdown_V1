@@ -21,13 +21,8 @@ extern "C"
 #define ADC_TIMEOUT_US 500
 #define CALIBRATION_TIME (3600 * 1000U)
 
-#if 1
-#define RISING(pb) HAL_GPIO_WritePin(PB##pb##_GPIO_Port, PB##pb##_Pin, GPIO_PIN_SET)
-#define FALLING(pb) HAL_GPIO_WritePin(PB##pb##_GPIO_Port, PB##pb##_Pin, GPIO_PIN_RESET)
-#else
-#define RISING(pb)
-#define FALLING(pb)
-#endif
+#define SetPB(pb) HAL_GPIO_WritePin(PB##pb##_GPIO_Port, PB##pb##_Pin, GPIO_PIN_SET)
+#define ClrPB(pb) HAL_GPIO_WritePin(PB##pb##_GPIO_Port, PB##pb##_Pin, GPIO_PIN_RESET)
 
 //#define SKIP_CRC
 
