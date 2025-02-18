@@ -1,0 +1,36 @@
+{
+    "files.associations": {
+        "mytmr.h": "c",
+        "stdint.h": "c",
+        "cmddata.h": "c",
+        "taskflasher.h": "c",
+        "tasklitsnsr.h": "c",
+        "i2c.h": "c",
+        "opt4001.h": "c",
+        "myi2c.h": "c",
+        "taskhb.h": "c",
+        "iwdg.h": "c",
+        "stm32f0xx_hal_def.h": "c",
+        "crc.h": "c",
+        "aschex.h": "c",
+        "config.h": "c",
+        "main.h": "c",
+        "stm32f0xx.h": "c",
+        "scanadc.h": "c",
+        "stm32f0xx_hal_adc.h": "c",
+        "getver.h": "c"
+    },
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/CVS": true,
+        "**/Debug": true,
+        "**/Release": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true
+    },
+    "stm32-for-vscode.openOCDPath": "c:\\Users\\lq\\AppData\\Roaming\\Code\\User\\globalStorage\\bmd.stm32-for-vscode\\@xpack-dev-tools\\openocd\\0.12.0-4.1\\.content\\bin\\openocd.EXE",
+    "stm32-for-vscode.makePath": "c:\\Users\\lq\\AppData\\Roaming\\Code\\User\\globalStorage\\bmd.stm32-for-vscode\\@xpack-dev-tools\\windows-build-tools\\4.4.1-3.1\\.content\\bin\\make.EXE",
+    "stm32-for-vscode.armToolchainPath": "c:\\Users\\lq\\AppData\\Roaming\\Code\\User\\globalStorage\\bmd.stm32-for-vscode\\@xpack-dev-tools\\arm-none-eabi-gcc\\13.3.1-1.1.1\\.content\\bin"
+}
