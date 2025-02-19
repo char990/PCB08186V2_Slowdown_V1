@@ -65,19 +65,10 @@ void SetLocalFlasher(uint8_t adc_flag, uint8_t pwm_b1b0)
 
     if (adc_flag)
     {
-        ENTER_CRITICAL();
-        pwm_status[0] = 0;
-        pwm_status[1] = 0;
-        EXIT_CRITICAL();
-        while (pwm_status[0] == 0 && pwm_status[1] == 0)
-            ;
-        Delay_us(ADC_DELAY_US);
-        // SetPB(15);
         if (RunAdc() != 0)
         {
             adc_flag = 0;   // skip this round
         }
-        // ClrPB(15);
     }
 
     if (pwm_b1b0 & ONE_PLUS_PWM)

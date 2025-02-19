@@ -8,6 +8,7 @@
 #include "tim.h"
 
 #define PWM_CHNS 2
+static uint8_t duty_set[PWM_CHNS];
 
 TIM_OC_InitTypeDef sConfigOC = {
 	.OCPolarity = TIM_OCPOLARITY_LOW,
@@ -31,60 +32,42 @@ const pwm_t pwm[PWM_CHNS] =
 		{&htim17, TIM_CHANNEL_1},
 };
 
-void SetDuty(uint8_t c, uint8_t duty)
+static void ReStartCnt()
 {
-	TIM_HandleTypeDef *htim = pwm[c].htim;
-	uint32_t chn = pwm[c].chn;
-	if (duty == 0)
-	{
-		sConfigOC.OCMode = TIM_OCMODE_FORCED_INACTIVE;
-	}
-	else if (duty == 255)
-	{
-		sConfigOC.OCMode = TIM_OCMODE_FORCED_ACTIVE;
-	}
-	else
-	{
-		sConfigOC.OCMode = TIM_OCMODE_PWM1;
-		sConfigOC.Pulse = duty;
-	}
-	HAL_TIM_PWM_Stop(htim, chn);
-	if (HAL_TIM_PWM_ConfigChannel(htim, &sConfigOC, chn) != HAL_OK)
-	{
-		Error_Handler();
-	}
-	__HAL_TIM_ENABLE_IT(htim, TIM_IT_UPDATE);
-	htim->Instance->CNT = 0;
-	HAL_TIM_PWM_Start(htim, chn);
+	__disable_irq();
+	TIM16->CNT=0;
+	TIM17->CNT=0;
+	TIM16->CR1|=TIM_CR1_CEN;
+	TIM17->CR1|=TIM_CR1_CEN;
+	__enable_irq();
 }
 
-void SetHcAllDuty(uint8_t duty1, uint8_t duty2)
+static void RefreshHcAllDuty()
 {
-	uint8_t duty[PWM_CHNS] = {duty1, duty2};
 	for (int i = 0; i < PWM_CHNS; i++)
 	{
 		TIM_HandleTypeDef *htim = pwm[i].htim;
 		uint32_t chn = pwm[i].chn;
-		if (duty[i] == 0)
+		if (duty_set[i] == 0)
 		{
 			sConfigOC.OCMode = TIM_OCMODE_FORCED_INACTIVE;
 		}
-		else if (duty[i] == 255)
+		else if (duty_set[i] == 255)
 		{
 			sConfigOC.OCMode = TIM_OCMODE_FORCED_ACTIVE;
 		}
 		else
 		{
 			sConfigOC.OCMode = TIM_OCMODE_PWM1;
-			sConfigOC.Pulse = duty[i];
+			sConfigOC.Pulse = duty_set[i]*128;
 		}
 		HAL_TIM_PWM_Stop(htim, chn);
+		HAL_TIM_Base_Stop(htim);
 		if (HAL_TIM_PWM_ConfigChannel(htim, &sConfigOC, chn) != HAL_OK)
 		{
 			Error_Handler();
 		}
 		__HAL_TIM_ENABLE_IT(htim, TIM_IT_UPDATE);
-		htim->Instance->CNT = 0;
 		TIM_CHANNEL_STATE_SET(htim, chn, HAL_TIM_CHANNEL_STATE_BUSY);
 		TIM_CCxChannelCmd(htim->Instance, chn, TIM_CCx_ENABLE);
 		if (IS_TIM_BREAK_INSTANCE(htim->Instance) != RESET)
@@ -92,10 +75,20 @@ void SetHcAllDuty(uint8_t duty1, uint8_t duty2)
 			__HAL_TIM_MOE_ENABLE(htim);
 		}
 	}
-	__disable_irq();
-	__HAL_TIM_ENABLE(&htim16);
-	__HAL_TIM_ENABLE(&htim17);
-	__enable_irq();
+	ReStartCnt();
+}
+
+void SetDuty(uint8_t c, uint8_t duty)
+{
+	duty_set[c] = duty;
+	RefreshHcAllDuty();
+}
+
+void SetHcAllDuty(uint8_t duty1, uint8_t duty2)
+{
+	duty_set[0] = duty1;
+	duty_set[1] = duty2;
+	RefreshHcAllDuty();
 }
 
 void PwmCallback(TIM_HandleTypeDef *htim)

@@ -25,6 +25,7 @@
 #include "MyI2C.h"
 #include "ScanAdc.h"
 #include "Config.h"
+#include "Critical.h"
 
 myPt_t ptCli;
 #define this_pt (&ptCli)
@@ -121,22 +122,7 @@ CMD_RET_t TestAd(int argc, char **argv)
 		MyPrintf("\nADCEx_Calibration Failed=%u\n", st);
 		return SUCCESS_WITHOUT_MSG;
 	}
-	//SetDuty(1, 255);
-	//SetDuty(0, 255);
-	//HAL_Delay(10);
-	int r = RunAdc();
-
-	uint16_t adcv[ADC_SIZE];
-	memset(adcv, 0xFF, sizeof(adcv));
-	st = HAL_ADC_Start_DMA(scanAdc.hadc, (uint32_t *)adcv, ADC_SIZE);
-	while (scanAdc.hadc->State & HAL_ADC_STATE_REG_BUSY)
-	{
-		HAL_Delay(1);
-	}
-	HAL_ADC_Stop_DMA(scanAdc.hadc);
-	//SetDuty(1, 0);
-	//SetDuty(0, 0);
-	if (r != 0)
+	if (RunAdc() != 0)
 	{
 		MyPrintf("ADC error: ST = 0x%08X\n", scanAdc.hadc->State);
 	}

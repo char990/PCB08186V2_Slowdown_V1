@@ -10,6 +10,8 @@
 #include "MyTmr.h"
 #include "stm32f0xx_hal_adc.h"
 #include "stm32f0xx_ll_adc.h"
+#include "Critical.h"
+#include "Pwm.h"
 
 int Get_mv(adcval_t adv, adcval_t ref)
 {
@@ -34,12 +36,25 @@ void AdcCalibration()
 	HAL_ADCEx_Calibration_Start(&hadc);
 }
 
+#define PB15_EN
 int RunAdc()
 {
-	adc_t *adc = &scanAdc;
+	ENTER_CRITICAL();
+    pwm_status[0] = 0;
+    pwm_status[1] = 0;
+    EXIT_CRITICAL();
+
+    adc_t *adc = &scanAdc;
 	uint32_t timeout_us = ADC_TIMEOUT_US;
 	adc->adc_st = 0;
 	int rtv = 0;
+
+    while (pwm_status[0] == 0 && pwm_status[1] == 0)
+        ;
+    Delay_us(ADC_DELAY_US);
+#ifdef PB15_EN
+    SetPB(15);
+#endif
 	if (HAL_OK != HAL_ADC_Start_DMA(adc->hadc, (uint32_t *)(adc->dma_buf), adc->chs))
 	{
 		rtv = 1;
@@ -61,6 +76,9 @@ int RunAdc()
 			rtv = 1;
 		}
 	}
+#ifdef PB15_EN
+    ClrPB(15);
+#endif
 	if (rtv)
 	{
 		adc->adc_st = -1;
@@ -100,6 +118,7 @@ int GetHCmA(int chn)
  */
 int8_t GetTcpu()
 {
+#if 1
 	if (scanAdc.adc_st >= 0)
 	{
 		int c1 = *TEMPSENSOR_CAL1_ADDR;
@@ -107,6 +126,7 @@ int8_t GetTcpu()
 		int t = ((TEMPSENSOR_CAL2_TEMP - TEMPSENSOR_CAL1_TEMP) * (pData[ADC_T_CPU] - c1)) / (c2 - c1) + 30;
 		return (t < 0) ? 0 : ((t > 127) ? 127 : t);
 	}
+#endif
 	return 0;
 }
 
