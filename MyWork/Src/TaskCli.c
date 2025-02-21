@@ -104,11 +104,11 @@ CMD_RET_t TestPwm(int argc, char **argv)
 	{
 		int s = strtol(argv[1], NULL, 0);
 		int duty = strtol(argv[2], NULL, 0);
-		if (s > 1 || duty < 0 || duty > 255)
+		if (s < 1 || s > 2 || duty < 0 || duty > 255)
 		{
 			return INVALID_PARAM;
 		}
-		SetDuty(s, duty);
+		SetDuty(s-1, duty);
 		return SUCCESS_WITHOUT_MSG;
 	}
 }
@@ -253,7 +253,7 @@ CMD_RET_t MCP9808(int argc, char **argv)
 
 CMD_RET_t OPT4001(int argc, char **argv)
 {
-	MyPrintf("\nst_lux = %u\n", st_lux);
+	MyPrintf("\nst_lux: [0] = %u, [1] = %u\n", st_lux[0], st_lux[1]);
 	return SUCCESS_WITHOUT_MSG;
 }
 
@@ -280,7 +280,7 @@ command_t CLI_CMD[] =
 		/*********************** test ***********************/
 		{"testpwm", TestPwm,
 		 "\r\ntestpwm HC duty"
-		 "\r\n  HC=0|1, duty=0-255"},
+		 "\r\n  HC=1|2, duty=0-255"},
 		{"testad", TestAd,
 		 "\r\ntestad"
 		 "\r\n  test all ad channels"},
@@ -323,7 +323,8 @@ uint8_t TaskCli()
 	PrintVersion();
 	for (;;)
 	{
-		PT_WAIT_UNTIL(this_pt, SpAnyChars(this_sp));
+        wdt |= WDT_TASK_CLI;
+		if(SpAnyChars(this_sp))
 		{
 			char rxc = SpGetchar(this_sp);
 			if (rxc == KEY_LF || rxc == KEY_CR)
@@ -336,7 +337,7 @@ uint8_t TaskCli()
 					int argc = MakeArg(cliRxBuf);
 					for (int i = 0; i < sizeof(CLI_CMD) / sizeof(CLI_CMD[0]); i++)
 					{
-						if (strcmp(CLI_CMD[i].cmd_str, argv[0]) == 0)
+						if (strcasecmp(CLI_CMD[i].cmd_str, argv[0]) == 0)
 						{
 							cmd_ret = (*CLI_CMD[i].cmd_func)(argc, argv);
 							break;
@@ -387,6 +388,7 @@ uint8_t TaskCli()
 				}
 			}
 		}
+        PT_YIELD(this_pt);
 	}
 	PT_END(this_pt);
 }

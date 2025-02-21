@@ -6,19 +6,28 @@
  */
 #include "MyI2C.h"
 
-HAL_StatusTypeDef MyI2C_Read(I2C_HandleTypeDef *hi2c, uint8_t addr, uint8_t reg, uint16_t *val)
+HAL_StatusTypeDef MyI2C_Read(I2C_HandleTypeDef *hi2c, uint8_t addr, uint8_t reg, uint8_t len, uint8_t *buf)
 {
-    uint8_t x[2];
-    if (HAL_I2C_Master_Transmit(hi2c, addr << 1, &reg, 1, 5) == HAL_OK &&
-        HAL_I2C_Master_Receive(hi2c, addr << 1, x, 2, 5) == HAL_OK)
+    MyI2C_CheckBus(hi2c);
+    if (len > 0)
     {
-        *val = x[0] * 0x100 + x[1];
-        return HAL_OK;
+        if (HAL_I2C_Master_Transmit(hi2c, addr << 1, &reg, 1, 10) == HAL_OK &&
+            HAL_I2C_Master_Receive(hi2c, addr << 1, buf, len, len + 10) == HAL_OK)
+        {
+            return HAL_OK;
+        }
     }
-    else
+    return HAL_ERROR;
+}
+
+HAL_StatusTypeDef MyI2C_Write(I2C_HandleTypeDef *hi2c, uint8_t addr, uint8_t len, uint8_t * reg_buf)
+{
+    MyI2C_CheckBus(hi2c);
+    if (len > 0)
     {
-        return HAL_ERROR;
+        return HAL_I2C_Master_Transmit(hi2c, addr << 1, reg_buf, len, len + 10);
     }
+    return HAL_ERROR;
 }
 
 void MyI2C_CheckBus(I2C_HandleTypeDef *hi2c)

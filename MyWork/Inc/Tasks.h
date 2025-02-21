@@ -16,10 +16,11 @@ extern "C"
 #include "stdint.h"
 
 #define WDT_TASK_FL (1 << 0)
-#define WDT_TASK_SP (1 << 1)
-#define WDT_TASK_LT (1 << 2)
+#define WDT_TASK_PTC (1 << 1)
+#define WDT_TASK_LS (1 << 2)
+#define WDT_TASK_CLI (1 << 3)
 
-#define TASK_ALL (WDT_TASK_FL | WDT_TASK_SP | WDT_TASK_LT)
+#define TASK_ALL (WDT_TASK_FL | WDT_TASK_PTC | WDT_TASK_LS | WDT_TASK_CLI)
 
     extern uint8_t wdt;
 

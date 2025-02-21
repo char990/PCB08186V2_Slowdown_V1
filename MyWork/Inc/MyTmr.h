@@ -13,9 +13,12 @@ extern "C" {
 #endif
 
 #include "stdint.h"
+#include "time.h"
 
-uint32_t Timestamp();
+time_t GetTimestamp();
+void SetTimestamp(time_t t);
 
+time_t GetLocalTime(struct tm *localtm);
 
 // msTmr_t uses HAL tick
 typedef uint32_t ms_t;

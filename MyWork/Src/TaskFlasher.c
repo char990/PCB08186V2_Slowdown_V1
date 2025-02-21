@@ -110,7 +110,7 @@ uint8_t TaskFlasher()
             }
             else
             {
-                SetLocalFlasher(RUN_ADC, st_conspicuity);
+                SetLocalFlasher(RUN_ADC, (1 << PORT_HC1) | (1 << PORT_HC2));
                 conspicuity_0_cnt = 0;
             }
         }

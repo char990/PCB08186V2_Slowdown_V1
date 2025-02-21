@@ -7,6 +7,7 @@
 #include "MyTmr.h"
 #include "stm32f0xx_hal.h"
 
+
 void MakeMsTmrExpired(msTmr_t *tmr)
 {
 	tmr->tickstart = HAL_GetTick() - 1;
@@ -72,7 +73,7 @@ void Delay_us(us_t delay)
 }
 
 static __IO uint32_t tick_ms;
-static __IO uint32_t tick_seconds;
+static __IO time_t tick_seconds;
 
 extern __IO uint32_t uwTick;
 extern HAL_TickFreqTypeDef uwTickFreq;
@@ -87,7 +88,22 @@ void HAL_IncTick()
 	}
 }
 
-uint32_t Timestamp()
+time_t GetTimestamp()
 {
 	return tick_seconds;
+}
+
+void SetTimestamp(time_t t)
+{
+	tick_seconds = t;
+}
+
+time_t GetLocalTime(struct tm *localtm)
+{
+    time_t t = GetTimestamp();
+    if (t > 0)
+    {
+		localtime_r(&t, localtm);
+    }
+	return t;
 }

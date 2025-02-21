@@ -20,7 +20,8 @@
         "stm32f0xx_hal_adc.h": "c",
         "getver.h": "c",
         "critical.h": "c",
-        "tim.h": "c"
+        "tim.h": "c",
+        "glibc_env.h": "c"
     },
     "files.exclude": {
         "**/.git": true,

@@ -34,7 +34,7 @@ uint8_t TaskLitSnsr()
     }
     for (;;)
     {
-        wdt |= WDT_TASK_LT;
+        wdt |= WDT_TASK_LS;
         SetMsTmr(this_tmr, 1000);
         {
             int x = this_pt->status++ & 1;

@@ -12,6 +12,7 @@
 #include "TaskLitSnsr.h"
 #include "TaskPtc.h"
 #include "TaskCli.h"
+#include "glibc_env.h"
 
 uint8_t wdt;
 
@@ -26,6 +27,7 @@ uint16_t st_flasherCurrent[2];
 
 void TasksRun()
 {
+	GlibcEnvInit();
 	HAL_TIM_Base_Start(&htim14);
 	SerialPortInit();
 	TaskHbInit();

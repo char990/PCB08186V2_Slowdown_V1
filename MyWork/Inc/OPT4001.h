@@ -14,23 +14,26 @@ extern "C" {
 
 #include "i2c.h"
 
-#define OPT4001_ERROR 0
-#define OPT4001_OK 1
+#define OPT4001_NG 0
+
 #define OPT4001_AD0 0x44
 #define OPT4001_AD1 0x45
+
+#define REG_CFG 0x0A
+#define REG_ID 0x11
 
 /*
  * @brief   Init. Set OPT4001 in auto-range, 200ms, continous mode
  * @param   addr: address of OPT4001, 0x44|0x45 depends on ADDR
- * @retval  Return 1 means success.
+ * @retval  Return "address of OPT4001, 0x44|0x45 depends on ADDR" means success.
  *          Return 0 means hardware error.
 */
-uint16_t OPT4001Init(I2C_HandleTypeDef *hi2c, uint8_t addr);
+uint8_t OPT4001Init(I2C_HandleTypeDef *hi2c, uint8_t addr);
 
 /*
  * @brief   Check OPT4001 on address 0x44 or 0x45. If exist, call Init
  * @retval  Return 0x44/0x45 means success.
- *          Return 0 means hardware error.
+ *          Return 0 means no address matched=error
 */
 uint8_t OPT4001Check(I2C_HandleTypeDef *hi2c);
 

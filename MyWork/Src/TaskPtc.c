@@ -83,7 +83,7 @@ uint8_t TaskPtc()
 	PT_BEGIN(this_pt);
 	for (;;)
 	{
-		wdt |= WDT_TASK_SP;
+		wdt |= WDT_TASK_PTC;
 		if (RxCmd(&rxCmd) > 0)
 		{
 			if (rxCmd.buffer[CMD_INDEX_SLVID] == SLV_ID || rxCmd.buffer[CMD_INDEX_SLVID] == 0xFF)
