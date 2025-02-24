@@ -7,6 +7,11 @@
 #include "DS3231.h"
 #include "MyI2C.h"
 #include "MyTmr.h"
+#include "AscHex.h"
+#include "glibc_env.h"
+
+#define REG_CONTROL_VALUE 0x26  // START temperature conversion
+#define REG_STATUS_VALUE 0x00   // clear status, disalbe 32KHz output
 
 static int DS3231ReadRegs(I2C_HandleTypeDef *ds3231_i2c, int reg_addr, uint8_t *buf, int len)
 {
@@ -22,6 +27,42 @@ static int DS3231WriteRegs(I2C_HandleTypeDef *ds3231_i2c, int reg_addr, const ui
         reg_buf[i + 1] = buf[i];
     }
     return (MyI2C_Write(ds3231_i2c, DS3231_ADDR, len + 1, reg_buf) == HAL_OK) ? DS3231_OK : DS3231_NG;
+}
+
+static int DS3231GetControl(I2C_HandleTypeDef *ds3231_i2c, char *v)
+{
+    uint8_t pr;
+    int result;
+    result = DS3231ReadRegs(ds3231_i2c, DS3231_REG_CONTROL, &pr, 1);
+    if (result < 1)
+    {
+        return -1;
+    }
+    *v = pr;
+    return 0;
+}
+
+static int DS3231SetControl(I2C_HandleTypeDef *ds3231_i2c, char v)
+{
+    return DS3231WriteRegs(ds3231_i2c, DS3231_REG_CONTROL, (const uint8_t *)&v, 1);
+}
+
+static int DS3231GetStatus(I2C_HandleTypeDef *ds3231_i2c, char *v)
+{
+    uint8_t pr;
+    int result;
+    result = ReadRegs(ds3231_i2c, DS3231_REG_STATUS, &pr, 1);
+    if (result < 1)
+    {
+        return -1;
+    }
+    *v = pr;
+    return 0;
+}
+
+static int DS3231SetStatus(I2C_HandleTypeDef *ds3231_i2c, char v)
+{
+    return DS3231WriteRegs(ds3231_i2c, DS3231_REG_STATUS, (const uint8_t *)&v, 1);
 }
 
 static int DS3231GetUtcTime(I2C_HandleTypeDef *ds3231_i2c, struct tm *utctm)
@@ -77,8 +118,8 @@ static int DS3231SetRtcRegs(I2C_HandleTypeDef *ds3231_i2c, char *rtc)
 int DS3231Init(I2C_HandleTypeDef *ds3231_i2c)
 {
     uint8_t buf[2];
-    buf[0] = 0x06;
-    buf[1] = 0x00;
+    buf[0] = REG_CONTROL_VALUE;
+    buf[1] = REG_STATUS_VALUE;
     return DS3231WriteRegs(ds3231_i2c, DS3231_REG_CONTROL, buf, 2);
 }
 
@@ -87,12 +128,9 @@ time_t => struct tm:
     struct tm * localtime_r (const time t *time, struct tm *resultp)
     struct tm * gmtime_r (const time t *time, struct tm *resultp)
 struct tm => time_t:
-    time_t timelocal (struct tm *brokentime)
-    time_t timegm (struct tm *brokentime)
-    or:
-    SetEnvTZ_UTC()
-    time_t mktime (struct tm *timeptr)
-    SetEnvTZ_LOCAL()
+    SetEnvTZ_UTC(); // make UTC time
+    time_t mktime (struct tm *brokentime)
+    SetEnvTZ_LOCAL();
 */
 
 time_t DS3231GetTime(I2C_HandleTypeDef *ds3231_i2c)
@@ -102,7 +140,10 @@ time_t DS3231GetTime(I2C_HandleTypeDef *ds3231_i2c)
     {
         return -1;
     }
-    return timegm(&utc);
+    SetTZ_UTC(); // make UTC time
+    time_t t = mktime(&utc);
+    SetTZ_LOCAL();
+    return t;
 }
 
 int DS3231SetTime(I2C_HandleTypeDef *ds3231_i2c, time_t t)
@@ -143,13 +184,17 @@ time_t DS3231GetLocalTime(I2C_HandleTypeDef *ds3231_i2c, struct tm *localtm)
 
 time_t DS3231SetLocalTime(I2C_HandleTypeDef *ds3231_i2c, struct tm *localtm)
 {
-    localtm->tm_isdst = -1;
-    time_t t = timelocal(localtm);
+    time_t t = mktime(localtm);
     if (t < 0)
     {
         return t;
     }
     return DS3231SetTime(ds3231_i2c, t);
+}
+
+int DS3231StartTemp(I2C_HandleTypeDef *ds3231_i2c)
+{
+    return DS3231SetControl(ds3231_i2c, REG_CONTROL_VALUE);
 }
 
 int DS3231GetTemp(I2C_HandleTypeDef *ds3231_i2c, int *t)
@@ -161,50 +206,6 @@ int DS3231GetTemp(I2C_HandleTypeDef *ds3231_i2c, int *t)
     {
         return -1;
     }
-    int t0 = tt[0];
-    if (t0 & 0x80)
-    {
-        *t = 0;
-    }
-    else
-    {
-        *t = (t0 > 85) ? (85 << 2) : ((t0 << 2) + (tt[1] >> 6));
-    }
+    *t = (tt[0] & 0x80) ? 0 : tt[0];
     return 0;
-}
-
-int DS3231GetControl(I2C_HandleTypeDef *ds3231_i2c, char *v)
-{
-    uint8_t pr;
-    int result;
-    result = DS3231ReadRegs(ds3231_i2c, DS3231_REG_CONTROL, &pr, 1);
-    if (result < 1)
-    {
-        return -1;
-    }
-    *v = pr;
-    return 0;
-}
-
-int DS3231SetControl(I2C_HandleTypeDef *ds3231_i2c, char v)
-{
-    return DS3231WriteRegs(ds3231_i2c, DS3231_REG_CONTROL, (const uint8_t *)&v, 1);
-}
-
-int DS3231GetStatus(I2C_HandleTypeDef *ds3231_i2c, char *v)
-{
-    uint8_t pr;
-    int result;
-    result = ReadRegs(ds3231_i2c, DS3231_REG_STATUS, &pr, 1);
-    if (result < 1)
-    {
-        return -1;
-    }
-    *v = pr;
-    return 0;
-}
-
-int DS3231SetStatus(I2C_HandleTypeDef *ds3231_i2c, char v)
-{
-    return DS3231WriteRegs(ds3231_i2c, DS3231_REG_STATUS, (const uint8_t *)&v, 1);
 }

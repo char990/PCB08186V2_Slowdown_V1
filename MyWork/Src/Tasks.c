@@ -12,6 +12,7 @@
 #include "TaskLitSnsr.h"
 #include "TaskPtc.h"
 #include "TaskCli.h"
+#include "TaskRtc.h"
 #include "glibc_env.h"
 
 uint8_t wdt;
@@ -21,6 +22,9 @@ uint8_t st_conspicuity;
 uint8_t st_pwm;
 uint8_t st_bootup;
 
+int8_t st_temp;
+
+uint8_t st_ds3231;
 
 uint16_t st_lux[2];
 uint16_t st_flasherCurrent[2];
@@ -35,6 +39,7 @@ void TasksRun()
 	TaskCliInit();
 	TaskFlasherInit();
 	TaskLitSnsrInit();
+	TaskRtc();
 	while (1)
 	{
 		TaskHb();
@@ -42,5 +47,6 @@ void TasksRun()
 		TaskCli();
 		TaskFlasher();
 		TaskLitSnsr();
+		TaskRtc();
 	};
 }

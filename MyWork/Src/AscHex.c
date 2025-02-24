@@ -7,6 +7,19 @@
 #include "AscHex.h"
 #include "ctype.h"
 
+int bcd2hex(int bcd)
+{
+    return (bcd & 0x0F) + ((bcd >> 4) & 0x0F) * 10;
+}
+
+int hex2bcd(int hex)
+{
+    int x1, x10;
+    x1 = hex % 10;
+    x10 = ((hex - x1) / 10) % 10;
+    return x10 * 0x10 + x1;
+}
+
 const char ASC[16] = {
     '0', '1', '2', '3', '4', '5', '6', '7',
     '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};

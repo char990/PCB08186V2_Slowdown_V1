@@ -19,8 +19,9 @@ extern "C"
 #define WDT_TASK_PTC (1 << 1)
 #define WDT_TASK_LS (1 << 2)
 #define WDT_TASK_CLI (1 << 3)
+#define WDT_TASK_RTC (1 << 4)
 
-#define TASK_ALL (WDT_TASK_FL | WDT_TASK_PTC | WDT_TASK_LS | WDT_TASK_CLI)
+#define TASK_ALL (WDT_TASK_FL | WDT_TASK_PTC | WDT_TASK_LS | WDT_TASK_CLI | WDT_TASK_RTC)
 
     extern uint8_t wdt;
 
@@ -30,6 +31,10 @@ extern "C"
     extern uint8_t st_conspicuity;
     extern uint8_t st_pwm;
     extern uint8_t st_bootup;
+
+    extern int8_t st_temp;
+
+    extern uint8_t st_ds3231;
 
 #define LUX_FRONT 0
 #define LUX_BACK 1

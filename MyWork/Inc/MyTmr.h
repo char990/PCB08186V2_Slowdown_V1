@@ -18,6 +18,7 @@ extern "C" {
 time_t GetTimestamp();
 void SetTimestamp(time_t t);
 
+void GetTsMs(time_t *s, uint32_t *ms);
 time_t GetLocalTime(struct tm *localtm);
 
 // msTmr_t uses HAL tick

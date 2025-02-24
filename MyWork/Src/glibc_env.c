@@ -18,16 +18,16 @@ char *glibc_env[]={
 
 void GlibcEnvInit()
 {
-	EnvSetTZ_LOCAL();
+	SetTZ_LOCAL();
 	environ = glibc_env;
 }
 
-void EnvSetTZ_LOCAL()
+void SetTZ_LOCAL()
 {
 	glibc_env[0] = (char *)LOCAL;
 }
 
-void EnvSetTZ_UTC()
+void SetTZ_UTC()
 {
 	glibc_env[0] = (char *)UTC;
 }

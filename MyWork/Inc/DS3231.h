@@ -49,13 +49,49 @@ extern "C"
      */
     int DS3231Init(I2C_HandleTypeDef *hi2c);
 
+    /*
+     * @brief   Get timestamp from DS3231
+     * @param   hi2c: I2C_HandleTypeDef
+     * @retval  Return timestamp. -1: Error
+     */
     time_t DS3231GetTime(I2C_HandleTypeDef *ds3231_i2c);
+
+    /*
+     * @brief   Set timestamp to DS3231
+     * @param   hi2c: I2C_HandleTypeDef
+     * @retval  Return timestamp. -1: Error
+     */
     int DS3231SetTime(I2C_HandleTypeDef *ds3231_i2c, time_t t);
 
+    /*
+     * @brief   Get localtime from DS3231
+     * @param   hi2c: I2C_HandleTypeDef
+     * @param   localtm: output localtime in brokentime format
+     * @retval  Return timestamp. -1: Error
+     */
     time_t DS3231GetLocalTime(I2C_HandleTypeDef *ds3231_i2c, struct tm *localtm);
+
+    /*
+     * @brief   Set localtime to DS3231
+     * @param   hi2c: I2C_HandleTypeDef
+     * @param   localtm: localtime in brokentime format
+     * @retval  Return timestamp. -1: Error
+     */
     time_t DS3231SetLocalTime(I2C_HandleTypeDef *ds3231_i2c, struct tm *localtm);
 
+    /*
+     * @brief   Start temperature convertion in DS3231
+     * @param   hi2c: I2C_HandleTypeDef
+     * @retval  Return DS3231_OK/NG
+     */
+    int DS3231StartTemp(I2C_HandleTypeDef *ds3231_i2c);
 
+    /*
+     * @brief   Read temperature in DS3231
+     * @param   hi2c: I2C_HandleTypeDef
+     * @param   t: output temperature ('C)
+     * @retval  Return DS3231_OK/NG
+     */
     int DS3231GetTemp(I2C_HandleTypeDef *ds3231_i2c, int *t);
 
 #ifdef __cplusplus

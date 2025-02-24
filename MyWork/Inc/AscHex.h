@@ -15,11 +15,14 @@ extern "C"
 
 #include "stdint.h"
 
-#define HIGH_BYTE_U16(v) ((uint8_t )(v>>8))
+    /// \brief  bcd <=> hex. Example: 0x15 <=> 15(0x0F)
+    int bcd2hex(int bcd);
+    int hex2bcd(int hex);
+
+#define HIGH_BYTE_U16(v) ((uint8_t)(v >> 8))
 #define LOW_BYTE_U16(v) ((uint8_t)v)
 
 #define CNVT_SWAP_U16(v) ((v >> 8) | (v << 8))
-
 
     extern const char ASC[16];
 

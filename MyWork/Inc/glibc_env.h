@@ -12,9 +12,9 @@
 extern "C" {
 #endif
 
-void GlibcEnvInit();
-void EnvSetTZ_LOCAL();
-void EnvSetTZ_UTC();
+extern void GlibcEnvInit();
+extern void SetTZ_LOCAL();
+extern void SetTZ_UTC();
 
 #ifdef __cplusplus
 }

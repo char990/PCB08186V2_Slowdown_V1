@@ -26,6 +26,9 @@
 #include "ScanAdc.h"
 #include "Config.h"
 #include "Critical.h"
+#include "DS3231.h"
+
+//#define ENABLE_MCP9808 1
 
 myPt_t ptCli;
 #define this_pt (&ptCli)
@@ -108,7 +111,7 @@ CMD_RET_t TestPwm(int argc, char **argv)
 		{
 			return INVALID_PARAM;
 		}
-		SetDuty(s-1, duty);
+		SetDuty(s - 1, duty);
 		return SUCCESS_WITHOUT_MSG;
 	}
 }
@@ -137,10 +140,10 @@ CMD_RET_t TestAd(int argc, char **argv)
 		for (int i = 0; i < ADC_HC_SIZE; i++)
 		{
 			MyPrintf(" [%d] = %u mv = %d ma%c",
-					i+1,
-					Get_mv(scanAdc.dma_buf[i], scanAdc.dma_buf[ADC_VREF]),
-					GetHCmA(i),
-					(i == ADC_HC_SIZE - 1) ? '\n' : ',');
+					 i + 1,
+					 Get_mv(scanAdc.dma_buf[i], scanAdc.dma_buf[ADC_VREF]),
+					 GetHCmA(i),
+					 (i == ADC_HC_SIZE - 1) ? '\n' : ',');
 		}
 		MyPrintf("T = %d('C)\n", GetTcpu());
 	}
@@ -185,7 +188,7 @@ CMD_RET_t TestI2C(int argc, char **argv)
 	return SUCCESS_WITHOUT_MSG;
 }
 
-#if 0
+#if ENABLE_MCP9808 == 1
 CMD_RET_t MCP9808(int argc, char **argv)
 {
 	I2C_HandleTypeDef *hi2c = &hi2c1;
@@ -269,6 +272,67 @@ CMD_RET_t CRC32(int argc, char **argv)
 	return SUCCESS_WITHOUT_MSG;
 }
 
+void PrintTime(time_t t)
+{
+	struct tm localtm;
+	localtime_r(&t, &localtm);
+	MyPrintf("%02d/%02d/%04d %02d:%02d:%02d\n",
+			 localtm.tm_mday, localtm.tm_mon + 1, localtm.tm_year + 1900,
+			 localtm.tm_hour, localtm.tm_min, localtm.tm_sec);
+}
+
+CMD_RET_t Date(int argc, char **argv)
+{
+	time_t t;
+	if (argc == 1)
+	{
+		MyPrintf("\nSystem time: ");
+		t = GetTimestamp();
+		PrintTime(t);
+		MyPrintf("\nDS3231 time: ");
+		t = DS3231GetTime(&hi2c2);
+		if (t > 0)
+		{
+			PrintTime(t);
+		}
+		else
+		{
+			MyPrintf("NG\n");
+		}
+		MyPrintf("DS3231-T: ");
+		int temp;
+		if (DS3231GetTemp(&hi2c2, &temp) == DS3231_OK)
+		{
+			MyPrintf("%d('C)\n", temp);
+		}
+		else
+		{
+			MyPrintf("NG\n");
+		}
+		return SUCCESS_WITHOUT_MSG;
+	}
+	else if (argc == 2)
+	{
+		struct tm stm;
+		char *cp = strptime(argv[1], "%d/%m/%y %H:%M:%S", &stm);
+		if (cp == NULL)
+		{
+			return INVALID_PARAM;
+		}
+		else
+		{
+			t = mktime(&stm);
+			SetTimestamp(t);
+			DS3231SetTime(&hi2c2, t);
+			return SUCCESS_WITHOUT_MSG;
+		}
+	}
+	else
+	{
+		return INVALID_PARAM;
+	}
+}
+
 CMD_RET_t Help(int argc, char **argv);
 command_t CLI_CMD[] =
 	{
@@ -288,7 +352,7 @@ command_t CLI_CMD[] =
 		 "\r\ntesti2c [addr len]"
 		 "\r\n  testi2c : List all slaves on I2C"
 		 "\r\n  testi2c 0x45 32: Print regs[0-31](max=256) of slave[0x45] on I2C"},
-#if 0
+#if ENABLE_MCP9808 == 1
 		 {"MCP9808", MCP9808,
 		 "\r\nMCP9808 address"
 		 "\r\n  List all register in MCP9808 and print temperature"},
@@ -299,6 +363,9 @@ command_t CLI_CMD[] =
 		{"CRC32", CRC32,
 		 "\r\nCRC32 12sdlfkjsdf"
 		 "\r\n  Calculate crc32"},
+		{"date", Date,
+		 "\rDate ['dd/MM/yy hh:mm:ss']"
+		 "\r\n  Print RTC & temprature or Set RTC"},
 };
 
 CMD_RET_t Help(int argc, char **argv)
@@ -323,8 +390,8 @@ uint8_t TaskCli()
 	PrintVersion();
 	for (;;)
 	{
-        wdt |= WDT_TASK_CLI;
-		if(SpAnyChars(this_sp))
+		wdt |= WDT_TASK_CLI;
+		if (SpAnyChars(this_sp))
 		{
 			char rxc = SpGetchar(this_sp);
 			if (rxc == KEY_LF || rxc == KEY_CR)
@@ -388,7 +455,7 @@ uint8_t TaskCli()
 				}
 			}
 		}
-        PT_YIELD(this_pt);
+		PT_YIELD(this_pt);
 	}
 	PT_END(this_pt);
 }
