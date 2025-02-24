@@ -39,7 +39,7 @@ void TasksRun()
 	TaskCliInit();
 	TaskFlasherInit();
 	TaskLitSnsrInit();
-	TaskRtc();
+	TaskRtcInit();
 	while (1)
 	{
 		TaskHb();

@@ -6,7 +6,7 @@
  */
 #include "twilight.h"
 
-#define HM(hour,min) (hour*60+min)
+#define HM(hour, min) (hour * 60 + min)
 #define TW_START 0
 #define TW_END 1
 #define TW_DAWN 0
@@ -38,7 +38,11 @@ const timezone_t tz_au[] = {
 #endif
 
 // SYDNEY
-const int twilight_time[2][2][2] = {HM(6,32), HM(7,0), HM(16,54), HM(17,21), HM(4,11), HM(4,40), HM(19,6), HM(19,35)};             // 4 Sydney
+const int twilight_time[2][2][2] = {
+    {{HM(6, 32), HM(7, 0)},
+     {HM(16, 54), HM(17, 21)}},
+    {{HM(4, 11), HM(4, 40)},
+     {HM(19, 6), HM(19, 35)}}};
 
 enum TwilightStatus GetTwilightStatus(time_t t)
 {
@@ -60,8 +64,8 @@ enum TwilightStatus GetTwilightStatus(time_t t)
         tm_tmp.tm_hour = 3;
         tm_tmp.tm_min = 0;
         tm_tmp.tm_sec = 1;
-        today3am = mktime(&tm_tmp);                                            // today 3:00:01
-        localtime_r(&today3am, &today);                                        // today.tm_isdst is ready for dawn & dusk
+        today3am = mktime(&tm_tmp);                                                // today 3:00:01
+        localtime_r(&today3am, &today);                                            // today.tm_isdst is ready for dawn & dusk
         time_t today_st_0 = today3am - 1 - ((today.tm_isdst == 1) ? 2 : 3) * 3600; // standard time 0:00:00
 
         if (today.tm_mday == 21 && (today.tm_mon == 5 || today.tm_mon == 11))
@@ -81,19 +85,19 @@ enum TwilightStatus GetTwilightStatus(time_t t)
             time_t t21;
             tm_tmp.tm_mday = 21;
 
-            tm_tmp.tm_mon = 5; //Jun-21
+            tm_tmp.tm_mon = 5; // Jun-21
             t21 = mktime(&tm_tmp);
             localtime_r(&t21, &Jun21);
 
-            tm_tmp.tm_mon = 11; //Dec-21
+            tm_tmp.tm_mon = 11; // Dec-21
             t21 = mktime(&tm_tmp);
             localtime_r(&t21, &Dec21);
 
-            int half_year = 183; // days of half year
-            if( (today.tm_yday<Jun21.tm_yday && (tm_tmp.tm_year&0x03)!=0) || // before Jun 21 of this year
-                (today.tm_yday>Dec21.tm_yday && (tm_tmp.tm_year&0x03)!=3))   // after Dec 21 of this year
-            {// not leap year
-                half_year=182;
+            int half_year = 183;                                                   // days of half year
+            if ((today.tm_yday < Jun21.tm_yday && (tm_tmp.tm_year & 0x03) != 0) || // before Jun 21 of this year
+                (today.tm_yday > Dec21.tm_yday && (tm_tmp.tm_year & 0x03) != 3))   // after Dec 21 of this year
+            {                                                                      // not leap year
+                half_year = 182;
             }
 
             int days;
@@ -122,7 +126,7 @@ enum TwilightStatus GetTwilightStatus(time_t t)
                 {
                     int ttm; // twilight time linearly interpolated offset : minute
                     ttm = twilight_time[_end][i][j] - twilight_time[_start][i][j];
-                    int everydaysec=(ttm * 60 * days / half_year);
+                    int everydaysec = (ttm * 60 * days / half_year);
                     dd_se[i][j] = today_st_0 + twilight_time[_start][i][j] * 60 + everydaysec;
                 }
             }

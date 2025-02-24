@@ -9,7 +9,7 @@
 
 #define BUILD_NUMBER(yyMMdd, HHmm) (yyMMdd * 10000UL + HHmm)
 
-const uint32_t FW_BUILD = BUILD_NUMBER(250224, 1228); // yyMMddHHmm
+const uint32_t FW_BUILD = BUILD_NUMBER(250224, 1821); // yyMMddHHmm
 
 const uint16_t FW_VERSION = 0x0100; // 0130, max size = 4
 

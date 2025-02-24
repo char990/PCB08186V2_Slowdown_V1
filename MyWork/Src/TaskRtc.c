@@ -56,6 +56,12 @@ uint8_t TaskRtc()
 	PT_END(this_pt);
 }
 
+void this_Init()
+{
+	SetMsTmr(&tmrRdTime, 1);
+	SetMsTmr(&tmrRdTemp, 1);
+}
+
 void TaskRtcInit()
 {
 	this_Init();

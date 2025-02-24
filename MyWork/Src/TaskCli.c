@@ -9,6 +9,7 @@
 #include <TaskCli.h>
 #include "stdlib.h"
 #include "string.h"
+#include "stdio.h"
 
 #include "main.h"
 
@@ -28,7 +29,7 @@
 #include "Critical.h"
 #include "DS3231.h"
 
-//#define ENABLE_MCP9808 1
+// #define ENABLE_MCP9808 1
 
 myPt_t ptCli;
 #define this_pt (&ptCli)
@@ -152,25 +153,41 @@ CMD_RET_t TestAd(int argc, char **argv)
 
 CMD_RET_t TestI2C(int argc, char **argv)
 {
-	I2C_HandleTypeDef *hi2c = &hi2c1;
-	if (argc != 1 && argc != 3)
+	I2C_HandleTypeDef *hi2c;
+	const char *si2c;
+	if (argc != 2 && argc != 4)
+	{
+		return INVALID_PARAM;
+	}
+	long i2c = strtol(argv[1], NULL, 0);
+	if (i2c == 1)
+	{
+		hi2c = &hi2c1;
+		si2c = "I2C1";
+	}
+	else if (i2c == 2)
+	{
+		hi2c = &hi2c2;
+		si2c = "I2C2";
+	}
+	else
 	{
 		return INVALID_PARAM;
 	}
 	uint8_t x[256];
 	x[0] = 0;
-	if (argc == 1)
+	if (argc == 2)
 	{
 		for (int i = 1; i < 128; i++)
 		{
 			x[i] = (HAL_I2C_Master_Receive(hi2c, i << 1, &x[i], 1, 10) == HAL_OK) ? i : 0;
 		}
-		PrintUint8(x, 128, "I2C");
+		PrintUint8(x, 128, si2c);
 	}
 	else // (argc == 3)
 	{
-		long addr = strtol(argv[1], NULL, 0);
-		long len = strtol(argv[2], NULL, 0);
+		long addr = strtol(argv[2], NULL, 0);
+		long len = strtol(argv[3], NULL, 0);
 		if (addr <= 0 || addr > 127 || len <= 0 || len > 128)
 		{
 			return INVALID_PARAM;
@@ -178,11 +195,11 @@ CMD_RET_t TestI2C(int argc, char **argv)
 		if (HAL_I2C_Master_Transmit(hi2c, addr << 1, x, 1, 1000) == HAL_OK &&
 			HAL_I2C_Master_Receive(hi2c, addr << 1, x, len, 1000) == HAL_OK)
 		{
-			PrintUint8(x, len, "I2C");
+			PrintUint8(x, len, si2c);
 		}
 		else
 		{
-			MyPrintf("\n%s Failed\n", "I2C");
+			MyPrintf("\n%s Failed\n", si2c);
 		}
 	}
 	return SUCCESS_WITHOUT_MSG;
@@ -311,35 +328,53 @@ CMD_RET_t Date(int argc, char **argv)
 		}
 		return SUCCESS_WITHOUT_MSG;
 	}
-	else if (argc == 2)
+	else if (argc == 3)
 	{
 		struct tm stm;
-		char *cp = strptime(argv[1], "%d/%m/%y %H:%M:%S", &stm);
-		if (cp == NULL)
+		int d, mon, y, h, min, s;
+		if (sscanf(argv[1], "%d/%d/%d", &d, &mon, &y) == 3 &&
+			sscanf(argv[2], "%d:%d:%d", &h, &min, &s) == 3)
 		{
-			return INVALID_PARAM;
-		}
-		else
-		{
-			t = mktime(&stm);
-			SetTimestamp(t);
-			DS3231SetTime(&hi2c2, t);
-			return SUCCESS_WITHOUT_MSG;
+			if (y >= 25 && y <= 99)
+			{
+				stm.tm_mday = d;
+				stm.tm_mon = mon - 1;
+				stm.tm_year = y + 2000 - 1900;
+				stm.tm_hour = h;
+				stm.tm_min = min;
+				stm.tm_sec = s;
+				t = mktime(&stm);
+				SetTimestamp(t);
+				if (DS3231SetTime(&hi2c2, t) == DS3231_NG)
+				{
+					MyPrintf("DS3231SetTime failed\n");
+				}
+				return SUCCESS_WITHOUT_MSG;
+			}
 		}
 	}
-	else
-	{
-		return INVALID_PARAM;
-	}
+	return INVALID_PARAM;
 }
 
+CMD_RET_t PrintStatus(int argc, char **argv)
+{
+	PrintVersion();
+	return SUCCESS_WITHOUT_MSG;
+}
+
+// declare here
 CMD_RET_t Help(int argc, char **argv);
+
 command_t CLI_CMD[] =
 	{
 		/*********************** info ***********************/
 		{"help", Help,
 		 "\r\nhelp"
 		 "\r\n  This help"},
+
+		{"ps", PrintStatus,
+		 "\r\nps"
+		 "\r\n  Print status"},
 
 		/*********************** test ***********************/
 		{"testpwm", TestPwm,
@@ -349,11 +384,11 @@ command_t CLI_CMD[] =
 		 "\r\ntestad"
 		 "\r\n  test all ad channels"},
 		{"testi2c", TestI2C,
-		 "\r\ntesti2c [addr len]"
-		 "\r\n  testi2c : List all slaves on I2C"
-		 "\r\n  testi2c 0x45 32: Print regs[0-31](max=256) of slave[0x45] on I2C"},
+		 "\r\ntesti2c 1|2 [addr len]"
+		 "\r\n  testi2c 1|2: List all slaves on I2C1|2"
+		 "\r\n  testi2c 1 0x45 32: Print regs[0-31](max=256) of slave[0x45] on I2C1"},
 #if ENABLE_MCP9808 == 1
-		 {"MCP9808", MCP9808,
+		{"MCP9808", MCP9808,
 		 "\r\nMCP9808 address"
 		 "\r\n  List all register in MCP9808 and print temperature"},
 #endif
@@ -364,13 +399,12 @@ command_t CLI_CMD[] =
 		 "\r\nCRC32 12sdlfkjsdf"
 		 "\r\n  Calculate crc32"},
 		{"date", Date,
-		 "\rDate ['dd/MM/yy hh:mm:ss']"
+		 "\r\nDate [dd/MM/yy hh:mm:ss]"
 		 "\r\n  Print RTC & temprature or Set RTC"},
 };
 
 CMD_RET_t Help(int argc, char **argv)
 {
-	PrintVersion();
 	CMD_RET_t ret = INVALID_PARAM;
 	for (int i = 1; i < sizeof(CLI_CMD) / sizeof(CLI_CMD[0]); i++)
 	{

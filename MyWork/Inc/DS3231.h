@@ -18,8 +18,12 @@ extern "C"
 
 #define DS3231_ADDR 0x68
 
-#define DS3231_NG 0
-#define DS3231_OK DS3231_ADDR
+typedef enum DS3231_ST_t
+{
+    DS3231_NG = 0,
+    DS3231_OK = DS3231_ADDR
+} DS3231_ST_t;
+
 
 #define DS3231_BYTES 0x13
 
@@ -47,7 +51,7 @@ extern "C"
      * @param   hi2c: I2C_HandleTypeDef
      * @retval  Return DS3231_OK/NG
      */
-    int DS3231Init(I2C_HandleTypeDef *hi2c);
+    DS3231_ST_t DS3231Init(I2C_HandleTypeDef *hi2c);
 
     /*
      * @brief   Get timestamp from DS3231
@@ -61,7 +65,7 @@ extern "C"
      * @param   hi2c: I2C_HandleTypeDef
      * @retval  Return timestamp. -1: Error
      */
-    int DS3231SetTime(I2C_HandleTypeDef *ds3231_i2c, time_t t);
+    time_t DS3231SetTime(I2C_HandleTypeDef *ds3231_i2c, time_t t);
 
     /*
      * @brief   Get localtime from DS3231
@@ -84,7 +88,7 @@ extern "C"
      * @param   hi2c: I2C_HandleTypeDef
      * @retval  Return DS3231_OK/NG
      */
-    int DS3231StartTemp(I2C_HandleTypeDef *ds3231_i2c);
+    DS3231_ST_t DS3231StartTemp(I2C_HandleTypeDef *ds3231_i2c);
 
     /*
      * @brief   Read temperature in DS3231
@@ -92,7 +96,7 @@ extern "C"
      * @param   t: output temperature ('C)
      * @retval  Return DS3231_OK/NG
      */
-    int DS3231GetTemp(I2C_HandleTypeDef *ds3231_i2c, int *t);
+    DS3231_ST_t DS3231GetTemp(I2C_HandleTypeDef *ds3231_i2c, int *t);
 
 #ifdef __cplusplus
 }
