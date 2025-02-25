@@ -1,10 +1,10 @@
 /*
- * TaskPtc.c
+ * TaskProtc.c
  *
  *  Created on: Sep 12, 2023
  *      Author: lq
  */
-#include <TaskPtc.h>
+#include <TaskProtc.h>
 #include "stdlib.h"
 #include "string.h"
 
@@ -78,12 +78,12 @@ static void this_Init()
 	SetMsTmr(this_tmr, SLV_TIMEOUT);
 }
 
-uint8_t TaskPtc()
+uint8_t TaskProtc()
 {
 	PT_BEGIN(this_pt);
 	for (;;)
 	{
-		wdt |= WDT_TASK_PTC;
+		wdt |= WDT_TASK_PROTC;
 		if (RxCmd(&rxCmd) > 0)
 		{
 			if (rxCmd.buffer[CMD_INDEX_SLVID] == SLV_ID || rxCmd.buffer[CMD_INDEX_SLVID] == 0xFF)
@@ -153,7 +153,7 @@ int CMD_SetConspicuity(int len)
 	return p - ptcTxBufHalf;
 }
 
-void TaskPtcInit()
+void TaskProtcInit()
 {
 	this_Init();
 	PT_Reset(this_pt);

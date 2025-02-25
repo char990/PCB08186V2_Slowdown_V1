@@ -4,8 +4,6 @@
  *  Created on: Feb 18, 2025
  *      Author: lq
  */
-
-#include <GetVer.h>
 #include <TaskCli.h>
 #include "stdlib.h"
 #include "string.h"
@@ -13,6 +11,7 @@
 
 #include "main.h"
 
+#include <FW_Version.h>
 #include "SerialPort.h"
 #include "Pwm.h"
 #include "MyTmr.h"
@@ -46,11 +45,11 @@ static uint8_t cliRxLen;
 
 void PrintVersion()
 {
-	char buf[36];
-	GetVer(buf);
-	MyPutchar('\n');
-	MyPuts(buf);
-	MyPutchar('\n');
+#ifdef DEBUG
+	MyPrintf("\nDEBUG: Version:%04x Build:%lu\n", FW_VERSION, FW_BUILD);
+#else
+	MyPrintf("\nRELEASE: Version:%04x Build:%lu\n", FW_VERSION, FW_BUILD);
+#endif
 }
 
 typedef enum CMD_RET
@@ -371,10 +370,12 @@ command_t CLI_CMD[] =
 		{"help", Help,
 		 "\r\nhelp"
 		 "\r\n  This help"},
-
 		{"ps", PrintStatus,
 		 "\r\nps"
 		 "\r\n  Print status"},
+		{"date", Date,
+		 "\r\nDate [dd/MM/yy hh:mm:ss]"
+		 "\r\n  Print RTC & temprature or Set RTC"},
 
 		/*********************** test ***********************/
 		{"testpwm", TestPwm,
@@ -398,9 +399,6 @@ command_t CLI_CMD[] =
 		{"CRC32", CRC32,
 		 "\r\nCRC32 12sdlfkjsdf"
 		 "\r\n  Calculate crc32"},
-		{"date", Date,
-		 "\r\nDate [dd/MM/yy hh:mm:ss]"
-		 "\r\n  Print RTC & temprature or Set RTC"},
 };
 
 CMD_RET_t Help(int argc, char **argv)

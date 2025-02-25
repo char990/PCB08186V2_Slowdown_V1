@@ -1,12 +1,12 @@
 /*
- * TaskPtc.h
+ * TaskProtc.h
  *
  *  Created on: Sep 12, 2023
  *      Author: lq
  */
 
-#ifndef INC_TASKPTC_H_
-#define INC_TASKPTC_H_
+#ifndef INC_TASKPROTC_H_
+#define INC_TASKPROTC_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -14,11 +14,11 @@ extern "C" {
 
 #include "MyPt.h"
 
-void TaskPtcInit();
-uint8_t TaskPtc();
+void TaskProtcInit();
+uint8_t TaskProtc();
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* INC_TASKPTC_H_ */
+#endif /* INC_TASKPROTC_H_ */

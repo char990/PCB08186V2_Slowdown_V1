@@ -26,7 +26,8 @@
         "ds3231.h": "c",
         "stm32f0xx_hal.h": "c",
         "twilight.h": "c",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "tasks.h": "c"
     },
     "files.exclude": {
         "**/.git": true,

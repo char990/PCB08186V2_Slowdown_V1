@@ -5,12 +5,11 @@
  *      Author: lq
  */
 #include "Tasks.h"
-#include "tim.h"
 #include "SerialPort.h"
 #include "TaskHb.h"
 #include "TaskFlasher.h"
 #include "TaskLitSnsr.h"
-#include "TaskPtc.h"
+#include "TaskProtc.h"
 #include "TaskCli.h"
 #include "TaskRtc.h"
 #include "glibc_env.h"
@@ -32,10 +31,9 @@ uint16_t st_flasherCurrent[2];
 void TasksRun()
 {
 	GlibcEnvInit();
-	HAL_TIM_Base_Start(&htim14);
 	SerialPortInit();
 	TaskHbInit();
-	TaskPtcInit();
+	TaskProtcInit();
 	TaskCliInit();
 	TaskFlasherInit();
 	TaskLitSnsrInit();
@@ -43,7 +41,7 @@ void TasksRun()
 	while (1)
 	{
 		TaskHb();
-		TaskPtc();
+		TaskProtc();
 		TaskCli();
 		TaskFlasher();
 		TaskLitSnsr();
