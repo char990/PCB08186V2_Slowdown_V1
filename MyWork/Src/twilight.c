@@ -21,7 +21,7 @@
         const char *TZ;
         int gmt_offset;
         int dst;
-        int twilight[2][2][2]; // minute from standard time 0:00:00
+        int twilight[2][2][2]; // minute from standard time without DST adjustment
     } timezone_t;
 
 const timezone_t tz_au[] = {
@@ -37,12 +37,11 @@ const timezone_t tz_au[] = {
 };
 #endif
 
-// SYDNEY
+// Civil Tiwlight time in SYDNEY, standard time without DST adjustment
 const int twilight_time[2][2][2] = {
-    {{HM(6, 32), HM(7, 0)},
-     {HM(16, 54), HM(17, 21)}},
-    {{HM(4, 11), HM(4, 40)},
-     {HM(19, 6), HM(19, 35)}}};
+    // Dawn                , Dusk
+    {{HM(6, 32), HM(7, 00)}, {HM(16, 54), HM(17, 21)}},  // 21/Jun
+    {{HM(4, 11), HM(4, 40)}, {HM(19, 06), HM(19, 35)}}}; // 21/Dec
 
 enum TwilightStatus GetTwilightStatus(time_t t)
 {
@@ -66,7 +65,7 @@ enum TwilightStatus GetTwilightStatus(time_t t)
         tm_tmp.tm_sec = 1;
         today3am = mktime(&tm_tmp);                                                // today 3:00:01
         localtime_r(&today3am, &today);                                            // today.tm_isdst is ready for dawn & dusk
-        time_t today_st_0 = today3am - 1 - ((today.tm_isdst == 1) ? 2 : 3) * 3600; // standard time 0:00:00
+        time_t today_st_0 = today3am - 1 - ((today.tm_isdst == 1) ? 2 : 3) * 3600; // standard time
 
         if (today.tm_mday == 21 && (today.tm_mon == 5 || today.tm_mon == 11))
         {
