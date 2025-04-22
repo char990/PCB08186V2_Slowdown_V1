@@ -27,8 +27,10 @@
 #include "Config.h"
 #include "Critical.h"
 #include "DS3231.h"
+#include "SignStatus.h"
 
 // #define ENABLE_MCP9808 1
+// #define ENABLE_CRC32 1
 
 myPt_t ptCli;
 #define this_pt (&ptCli)
@@ -272,10 +274,11 @@ CMD_RET_t MCP9808(int argc, char **argv)
 
 CMD_RET_t OPT4001(int argc, char **argv)
 {
-	MyPrintf("\nst_lux: [0] = %u, [1] = %u\n", st_lux[0], st_lux[1]);
+	MyPrintf("\nlux[2]: [0] = %u, [1] = %u\n", signExtStatus.lux[0], signExtStatus.lux[1]);
 	return SUCCESS_WITHOUT_MSG;
 }
 
+#if ENABLE_CRC32 == 1
 CMD_RET_t CRC32(int argc, char **argv)
 {
 	if (argc != 2)
@@ -287,6 +290,7 @@ CMD_RET_t CRC32(int argc, char **argv)
 	MyPrintf("\ncrc=0x%08X\n", crc);
 	return SUCCESS_WITHOUT_MSG;
 }
+#endif
 
 void PrintTime(time_t t)
 {
@@ -395,10 +399,12 @@ command_t CLI_CMD[] =
 #endif
 		{"OPT4001", OPT4001,
 		 "\r\nOPT4001"
-		 "\r\n  Print st_lux"},
+		 "\r\n  Print lux[2]"},
+#if ENABLE_CRC32 == 1
 		{"CRC32", CRC32,
 		 "\r\nCRC32 12sdlfkjsdf"
 		 "\r\n  Calculate crc32"},
+#endif
 };
 
 CMD_RET_t Help(int argc, char **argv)

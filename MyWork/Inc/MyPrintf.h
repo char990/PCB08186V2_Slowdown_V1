@@ -13,7 +13,6 @@ extern "C" {
 #endif
 
 #include "stdint.h"
-#include "stdio.h"
 
 int MyPrintf(const char *fmt, ...);
 

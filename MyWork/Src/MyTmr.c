@@ -6,6 +6,7 @@
  */
 #include "MyTmr.h"
 #include "stm32f0xx_hal.h"
+#include "Critical.h"
 
 void MakeMsTmrExpired(msTmr_t *tmr)
 {
@@ -71,6 +72,12 @@ void Delay_us(us_t delay)
 		;
 }
 
+static __IO time_t sys_seconds;
+time_t Get_sys_seconds()
+{
+	return sys_seconds;
+}
+
 static __IO uint32_t tick_ms;
 static __IO time_t tick_seconds = 1735689600; // 2025-1-1 0:00:00(UTC) = 1/1/2025 11:00:00(AEDT)
 
@@ -84,6 +91,7 @@ void HAL_IncTick()
 	{
 		tick_ms -= 1000;
 		tick_seconds++;
+		sys_seconds++;
 	}
 }
 
@@ -100,8 +108,10 @@ void GetTsMs(time_t *s, uint32_t *ms)
 
 void SetTimestamp(time_t t)
 {
+	ENTER_CRITICAL();
 	tick_seconds = t;
 	tick_ms = 0;
+	EXIT_CRITICAL();
 }
 
 time_t GetLocalTime(struct tm *localtm)

@@ -32,6 +32,7 @@ const pwm_t pwm[PWM_CHNS] =
 		{&htim17, TIM_CHANNEL_1},
 };
 
+#if 0
 static void ReStartCnt()
 {
 	__disable_irq();
@@ -78,17 +79,66 @@ static void RefreshHcAllDuty()
 	ReStartCnt();
 }
 
+void SetHcAllDuty(uint8_t duty1, uint8_t duty2)
+{
+	duty_set[0] = duty1;
+	duty_set[1] = duty2;
+	RefreshHcAllDuty();
+}
+
 void SetDuty(uint8_t c, uint8_t duty)
 {
 	duty_set[c] = duty;
 	RefreshHcAllDuty();
 }
 
+#endif
+
+void SetDuty(uint8_t i, uint8_t duty)
+{
+	if (i >= 1)
+	{
+		return;
+	}
+	TIM_HandleTypeDef *htim = pwm[i].htim;
+	TIM_TypeDef *timInstance = htim->Instance;
+	uint32_t chn = pwm[i].chn;
+	if (duty == 0)
+	{
+		sConfigOC.OCMode = TIM_OCMODE_FORCED_INACTIVE;
+	}
+	else if (duty == 255)
+	{
+		sConfigOC.OCMode = TIM_OCMODE_FORCED_ACTIVE;
+	}
+	else
+	{
+		sConfigOC.OCMode = TIM_OCMODE_PWM1;
+		sConfigOC.Pulse = duty * 128;
+	}
+	HAL_TIM_PWM_Stop(htim, chn);
+	HAL_TIM_Base_Stop(htim);
+	if (HAL_TIM_PWM_ConfigChannel(htim, &sConfigOC, chn) != HAL_OK)
+	{
+		Error_Handler();
+	}
+	__HAL_TIM_ENABLE_IT(htim, TIM_IT_UPDATE);
+	TIM_CHANNEL_STATE_SET(htim, chn, HAL_TIM_CHANNEL_STATE_BUSY);
+	TIM_CCxChannelCmd(timInstance, chn, TIM_CCx_ENABLE);
+	if (IS_TIM_BREAK_INSTANCE(timInstance) != RESET)
+	{
+		__HAL_TIM_MOE_ENABLE(htim);
+	}
+	__disable_irq();
+	timInstance->CNT = 0;
+	timInstance->CR1 |= TIM_CR1_CEN;
+	__enable_irq();
+}
+
 void SetHcAllDuty(uint8_t duty1, uint8_t duty2)
 {
-	duty_set[0] = duty1;
-	duty_set[1] = duty2;
-	RefreshHcAllDuty();
+	SetDuty(0, duty1);
+	SetDuty(0, duty2);
 }
 
 void PwmCallback(TIM_HandleTypeDef *htim)

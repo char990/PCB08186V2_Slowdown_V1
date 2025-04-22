@@ -14,7 +14,7 @@ extern "C" {
 
 #include "stdint.h"
 #include "time.h"
-
+time_t Get_sys_seconds();
 time_t GetTimestamp();
 void SetTimestamp(time_t t);
 

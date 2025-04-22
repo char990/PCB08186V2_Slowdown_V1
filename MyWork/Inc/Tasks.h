@@ -17,11 +17,12 @@ extern "C"
 
 #define WDT_TASK_FL (1 << 0)
 #define WDT_TASK_PROTC (1 << 1)
+#define WDT_TASK_INPUTS (1 << 1)
 #define WDT_TASK_LS (1 << 2)
 #define WDT_TASK_CLI (1 << 3)
 #define WDT_TASK_RTC (1 << 4)
 
-#define TASK_ALL (WDT_TASK_FL | WDT_TASK_PROTC | WDT_TASK_LS | WDT_TASK_CLI | WDT_TASK_RTC)
+#define TASK_ALL (WDT_TASK_FL | WDT_TASK_PROTC | WDT_TASK_LS | WDT_TASK_CLI | WDT_TASK_RTC | WDT_TASK_INPUTS)
 
     extern uint8_t wdt;
 
@@ -29,20 +30,12 @@ extern "C"
 
     extern uint8_t conspicuity_changed;
     extern uint8_t st_conspicuity;
-    extern uint8_t st_pwm;
-    extern uint8_t st_bootup;
-
-    extern int8_t st_temp;
-
-    extern uint8_t st_ds3231;
 
 #define LUX_FRONT 0
 #define LUX_BACK 1
-    extern uint16_t st_lux[2];
 
 #define PORT_HC1 0
 #define PORT_HC2 1
-    extern uint16_t st_flasherCurrent[2];
 
 #ifdef __cplusplus
 }

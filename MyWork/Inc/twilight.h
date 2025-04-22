@@ -8,6 +8,10 @@
 #ifndef INC_TWILIGHT_H_
 #define INC_TWILIGHT_H_
 
+#include "Config.h"
+
+#if GC_MODE == GC_MODE_IO
+
 #include <time.h>
 
 #ifdef __cplusplus
@@ -26,6 +30,8 @@ extern "C"
 
 #ifdef __cplusplus
 }
+#endif
+
 #endif
 
 #endif /* INC_TWILIGHT_H_ */

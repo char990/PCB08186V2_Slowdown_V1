@@ -13,7 +13,10 @@ extern "C"
 {
 #endif
 
-#define SLV_ID 0xA2
+#define GC_MODE_RS485 1
+#define GC_MODE_IO 1
+
+#define GC_MODE GC_MODE_IO
 
 #define CONSPICUITY_0_CHECKING_SEC 300
 

@@ -5,6 +5,9 @@
  *      Author: lq
  */
 #include <TaskProtc.h>
+
+#if GC_MODE == GC_MODE_RS485
+
 #include "stdlib.h"
 #include "string.h"
 
@@ -23,7 +26,9 @@
 #include "MyCrc.h"
 #include "MyI2C.h"
 #include "ScanAdc.h"
-#include "Config.h"
+#include "SignStatus.h"
+#include "FW_Version.h"
+#include "DS3231.h"
 
 myPt_t ptPtc;
 #define this_pt (&ptPtc)
@@ -35,17 +40,53 @@ SerialPort_t *spPtc = &serialPort[0];
 #define this_sp spPtc
 
 // All commands
-#define CMD_REQ_ST 0x35
-#define CMD_RPL_ST 0x36
-#define CMD_SET_CONSPICUITY 0x37
-#define CMD_RPL_CONSPICUITY 0x38
+#define PROTOCOL_VER_MAJOR 0x03
+#define PROTOCOL_VER_MINOR 0x02
+
+#define CMD_REQ_ST 0x05
+#define CMD_RPL_ST 0x06
+#define CMD_REQ_EXT_ST 0x07
+#define CMD_RPL_EXT_ST 0x08
+// #define CMD_SET_TXT_FRM 0x0A
+// #define CMD_SET_GFX_FRM 0x0B
+#define CMD_SET_SPC_FRM 0xFC
+#define CMD_DISP_FRM 0x0E
+#define CMD_STR_FRM 0x0F
+// #define CMD_SYNC 0x09
+#define CMD_SET_RTC 0x51
+#define CMD_REQ_RTC 0x52
+#define CMD_RPL_RTC 0x53
+#define CMD_REQ_VER 0x5E
+#define CMD_RPL_VER 0x5F
+// #define CMD_START 0xF0
 
 int CMD_ReqSt(int len);
-int CMD_SetConspicuity(int len);
+int CMD_ReqExtSt(int len);
+// int CMD_SetTxtFrm(int len);
+// int CMD_SetGfxFrm(int len);
+int CMD_SetSpecailFrm(int len);
+// int CMD_DisplayFrm(int len);
+// int CMD_StoredFrm(int len);
+int CMD_SD_Frm(int len); // CMD_DisplayFrm + CMD_StoredFrm
+int CMD_ReqVer(int len);
+// int CMD_Sync(int len);
+int CMD_SetRtc(int len);
+int CMD_ReqRtc(int len);
+// int CMD_Start(int len);
 
-const cmd_t SLV_CMD[] = {
+const cmd_t GRP_SIGN_CMD[] = {
 	{CMD_ReqSt, CMD_REQ_ST, 2},
-	{CMD_SetConspicuity, CMD_SET_CONSPICUITY, 4},
+	{CMD_ReqExtSt, CMD_REQ_EXT_ST, 11},
+	{CMD_ReqVer, CMD_REQ_VER, 2},
+	{CMD_SetRtc, CMD_SET_RTC, 10},
+	{CMD_ReqRtc, CMD_REQ_RTC, 2},
+	//	{CMD_Start, CMD_START, 14},
+	//	{CMD_Sync, CMD_SYNC, 2},
+	//	{CMD_SetTxtFrm, CMD_SET_TXT_FRM, 0},
+	//  {CMD_SetGfxFrm, CMD_SET_GFX_FRM, 0},
+	{CMD_SD_Frm, CMD_DISP_FRM, 3},
+	{CMD_SD_Frm, CMD_STR_FRM, 3},
+	{CMD_SetSpecailFrm, CMD_SET_SPC_FRM, 2},
 };
 
 #define PTC_TX_BUF_SIZE 64
@@ -76,6 +117,7 @@ static void this_Init()
 	rxCmd.AnyChars = this_AnyChars;
 	rxCmd.Getchar = this_GetChar;
 	SetMsTmr(this_tmr, SLV_TIMEOUT);
+	signStatus.lantn_fan_fault = 0x40; // set boot flag
 }
 
 uint8_t TaskProtc()
@@ -86,16 +128,16 @@ uint8_t TaskProtc()
 		wdt |= WDT_TASK_PROTC;
 		if (RxCmd(&rxCmd) > 0)
 		{
-			if (rxCmd.buffer[CMD_INDEX_SLVID] == SLV_ID || rxCmd.buffer[CMD_INDEX_SLVID] == 0xFF)
+			if (rxCmd.buffer[CMD_INDEX_SLVID] == signID || rxCmd.buffer[CMD_INDEX_SLVID] == 0xFF)
 			{
 				SetMsTmr(this_tmr, SLV_TIMEOUT);
-				for (int i = 0; i < sizeof(SLV_CMD) / sizeof(SLV_CMD[0]); i++)
+				for (int i = 0; i < sizeof(GRP_SIGN_CMD) / sizeof(GRP_SIGN_CMD[0]); i++)
 				{
-					if (rxCmd.buffer[CMD_INDEX_CODE] == SLV_CMD[i].cmd_id &&
-						(SLV_CMD[i].cmd_len == 0 || SLV_CMD[i].cmd_len == rxCmd.rxLen))
+					if (rxCmd.buffer[CMD_INDEX_CODE] == GRP_SIGN_CMD[i].cmd_id &&
+						(GRP_SIGN_CMD[i].cmd_len == 0 || GRP_SIGN_CMD[i].cmd_len == rxCmd.rxLen))
 					{
-						int len = (*SLV_CMD[i].func)(rxCmd.rxLen);
-						if (rxCmd.buffer[CMD_INDEX_SLVID] == SLV_ID && len > 0)
+						int len = (*GRP_SIGN_CMD[i].func)(rxCmd.rxLen);
+						if (rxCmd.buffer[CMD_INDEX_SLVID] == signID && len > 0)
 						{
 							len = Cmd_Encode(ptcTxBufHalf, ptcTxBuf, len);
 							if (len > 0)
@@ -126,31 +168,148 @@ uint8_t TaskProtc()
 int CMD_ReqSt(int len)
 {
 	uint8_t *p = ptcTxBufHalf;
-	*p++ = SLV_ID;
+	*p++ = signID;
 	*p++ = CMD_RPL_ST;
-	*p++ = st_conspicuity;
-	*p++ = st_pwm;
-	p = Cnvt_PutU16(st_lux[LUX_FRONT], p); // LUX_FRONT
-	p = Cnvt_PutU16(st_lux[LUX_BACK], p);  // LUX_BACK
-	// increase by 1 to avoid to report 0
-	p = Cnvt_PutU16(st_flasherCurrent[PORT_HC1] + 1, p); // upper flasher current
-	p = Cnvt_PutU16(st_flasherCurrent[PORT_HC2] + 1, p); // lower flasher current
-	*p++ = GetTcpu() | st_bootup;
-	st_bootup = 0;
+	*p++ = 0; // signStatus.chain_fault;
+	*p++ = 0; // signStatus.over_temp;
+	*p++ = 0; // signStatus.self_test;
+	*p++ = signStatus.single_led;
+	*p++ = signStatus.lantn_fan_fault;
+	*p++ = signStatus.litsnsr_fault & 0x03;
+	*p++ = signStatus.current_id;
+	p = Cnvt_PutU16(signStatus.current_crc, p);
+	*p++ = signStatus.next_id;
+	p = Cnvt_PutU16(signStatus.next_crc, p);
+	signStatus.lantn_fan_fault &= ~0x40; // clear boot flag
 	return p - ptcTxBufHalf;
 }
 
-int CMD_SetConspicuity(int len)
+#define REQ_EXT_ST_PWR_FAN 2
+#define REQ_EXT_ST_DIMMING 3
+int CMD_ReqExtSt(int len)
 {
-	conspicuity_changed = 1;
-	st_conspicuity = rxCmd.buffer[2] & 0x03;
-	st_pwm = rxCmd.buffer[3];
-	uint8_t *p = ptcTxBufHalf;
-	*p++ = SLV_ID;
-	*p++ = CMD_RPL_CONSPICUITY;
-	*p++ = st_conspicuity;
-	*p++ = st_pwm;
+	uint8_t *p = &rxCmd.buffer[REQ_EXT_ST_DIMMING];
+	for (int i = 0; i < 4; i++)
+	{
+		signExtStatus.gain[i] = *p++;
+		signExtStatus.bright[i] = *p++;
+	}
+	p = ptcTxBufHalf;
+	*p++ = signID;
+	*p++ = CMD_RPL_EXT_ST;
+	*p++ = rxCmd.buffer[REQ_EXT_ST_PWR_FAN]; //signExtStatus.control
+	uint8_t *pDimming = &rxCmd.buffer[REQ_EXT_ST_DIMMING];
+	for (int i = 0; i < 8; i++)
+	{
+		*p++ = *pDimming++;
+	}
+	*p++ = Cnvt_PutU16(12000 /*signExtStatus.vin[AD_VIN_CHN]*/, p);
+	signExtStatus.hours = Get_sys_seconds() / 3600;
+	p = Cnvt_PutU16(signExtStatus.hours, p);
+	p = Cnvt_PutU16(signExtStatus.t_board, p);
+	*p++ = 0; // signExtStatus.humidity;
+	p = Cnvt_PutU16(signExtStatus.vlux, p);
+	*p++ = 1; // thisSign->tiles;
+	*p++ = 1; // thisTile->pixelColors;
+	*p++ = signExtStatus.fault_led;
 	return p - ptcTxBufHalf;
+}
+
+#define SET_SPC_FRM_FRMID 2
+#define SET_SPC_FRM_SPCID 6
+#define SPC_FRM_STATIC 1
+#define SPC_FRM_FLASHING 2
+#define SPC_FRM_EMPTY 3
+
+int CMD_SetSpecailFrm(int len)
+{
+	uint8_t frmid = rxCmd.buffer[SET_SPC_FRM_FRMID];
+	uint8_t spcid = rxCmd.buffer[SET_SPC_FRM_SPCID];
+	if ((frmid == 1) &&																	  // frame ID, only 1 is allowed
+		(spcid == SPC_FRM_STATIC || spcid == SPC_FRM_FLASHING || spcid == SPC_FRM_EMPTY)) // special frame id
+	{
+		frame_t *f = &frames[frmid];
+		if (spcid == SPC_FRM_STATIC)
+		{
+			f->conspicuity = CONSPICUITY_ALL_ON;
+		}
+		else if (spcid == SPC_FRM_FLASHING)
+		{
+			f->conspicuity = CONSPICUITY_ALL_FLASH;
+		}
+		else if (spcid == SPC_FRM_EMPTY)
+		{
+			f->conspicuity = CONSPICUITY_ALL_OFF;
+		}
+		f->crc = signStatus.next_crc = rxCmd.buffer[len - 2] * 0x100 + rxCmd.buffer[len - 1];
+		signStatus.next_id = frmid;
+	}
+	return 0;
+}
+
+static int new_frmid = -1;
+int GetDispNewFrame()
+{
+	return new_frmid;
+}
+
+void SetDispNewFrame(int frmid)
+{
+	new_frmid = frmid;
+	if (new_frmid >= 0)
+	{
+		signStatus.current_id = signStatus.next_id = frmid;
+		signStatus.current_crc = signStatus.next_crc = frames[frmid].crc;
+	}
+}
+
+#define SD_FRM_FRMID 2
+int CMD_SD_Frm(int len)
+{
+	uint8_t frmid = rxCmd.buffer[SD_FRM_FRMID];
+	if (frmid < FRAMES_SIZE)
+	{
+		SetDispNewFrame(frmid);
+	}
+	return 0;
+}
+
+int CMD_ReqVer(int len)
+{
+	uint8_t *p = ptcTxBufHalf;
+	*p++ = signID;
+	*p++ = CMD_RPL_VER;
+	*p++ = PROTOCOL_VER_MAJOR;
+	*p++ = PROTOCOL_VER_MINOR;
+	p = Cnvt_PutU16(FW_VERSION, p);
+	p = Cnvt_PutU32(FW_BUILD, p);
+	return p - ptcTxBufHalf;
+}
+
+int CMD_ReqRtc(int len)
+{
+	uint8_t *p = ptcTxBufHalf;
+	*p++ = signID;
+	time_t ts = GetTimestamp();
+	p = Cnvt_PutU32((uint32_t)(ts >> 32), p);
+	p = Cnvt_PutU32((uint32_t)(ts), p);
+	return p - ptcTxBufHalf;
+}
+
+#define SET_RTC_TIME_T 2
+int CMD_SetRtc(int len)
+{
+	time_t tv_sec;
+	uint8_t *p = &rxCmd.buffer[SET_RTC_TIME_T];
+	tv_sec = Cnvt_GetU32(p) * 0x100000000;
+	p += 4;
+	tv_sec += Cnvt_GetU32(p);
+	SetTimestamp(tv_sec);
+	if (DS3231SetTime(&hi2c2, tv_sec) == DS3231_NG)
+	{ // ignore error
+	  // MyPrintf("DS3231SetTime failed\n");
+	}
+	return 0;
 }
 
 void TaskProtcInit()
@@ -159,3 +318,5 @@ void TaskProtcInit()
 	PT_Reset(this_pt);
 	SerialPortStartRx(this_sp);
 }
+
+#endif // GC_MODE == GC_MODE_RS485

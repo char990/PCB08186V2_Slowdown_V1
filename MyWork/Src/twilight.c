@@ -6,6 +6,8 @@
  */
 #include "twilight.h"
 
+#if GC_MODE == GC_MODE_IO
+
 #define HM(hour, min) (hour * 60 + min)
 #define TW_START 0
 #define TW_END 1
@@ -152,3 +154,4 @@ enum TwilightStatus GetTwilightStatus(time_t t)
         return TW_ST_DUSK;
     return TW_ST_NIGHT;
 }
+#endif // GC_MODE_IO
