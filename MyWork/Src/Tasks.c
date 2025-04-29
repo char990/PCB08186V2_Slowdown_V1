@@ -19,9 +19,6 @@
 
 uint8_t wdt;
 
-uint8_t conspicuity_changed;
-uint8_t st_conspicuity;
-
 #define FAULT_ST_FAN (1 << 0)
 #define FAULT_ST_LITSNSR (1 << 1)
 #define FAULT_ST_LANTERN (1 << 2)
@@ -34,17 +31,15 @@ uint8_t st_conspicuity;
 void TasksRun()
 {
 	SetFaultSt(~(FAULT_ST_CED | FAULT_ST_LITSNSR));
-	ClearStoredFrm();
 	GlibcEnvInit();
 	SerialPortInit();
 	TaskHbInit();
+
 #if GC_MODE == GC_MODE_RS485
 	TaskProtcInit();
-#elif GC_MODE == GC_MODE_IO
-	TaskInputsInit();
-#else
-#erro "GC_MODE not defined"
 #endif
+
+	TaskInputsInit();
 	TaskCliInit();
 	TaskFlasherInit();
 	TaskLitSnsrInit();
@@ -54,9 +49,8 @@ void TasksRun()
 		TaskHb();
 #if GC_MODE == GC_MODE_RS485
 		TaskProtc();
-#elif GC_MODE == GC_MODE_IO
-		TaskInputs();
 #endif
+		TaskInputs();
 		TaskCli();
 		TaskFlasher();
 		TaskLitSnsr();

@@ -74,15 +74,12 @@ extern "C"
 #define IS_FRM_DEF (1 << 0)
     typedef struct frame_t
     {
-        uint8_t frmSt;       // 0: No frame, BLANK. 1: has frame stored
         uint8_t conspicuity; // conspicuity byte from set frame command
         uint16_t crc;        // app crc from set frame command
     } frame_t;
 
-#define FRAMES_SIZE 2
-    extern frame_t frames[FRAMES_SIZE]; // [0]: OFF, [1]: real frame
-
-    void ClearStoredFrm();
+#define FRAMES_SIZE 3
+    const extern frame_t frames[FRAMES_SIZE]; // [0]: OFF, [1]: on, [2]: flashing
 
 #ifdef __cplusplus
 }

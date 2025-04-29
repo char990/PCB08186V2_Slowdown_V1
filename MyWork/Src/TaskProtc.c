@@ -64,10 +64,9 @@ int CMD_ReqSt(int len);
 int CMD_ReqExtSt(int len);
 // int CMD_SetTxtFrm(int len);
 // int CMD_SetGfxFrm(int len);
-int CMD_SetSpecailFrm(int len);
+// int CMD_SetSpecailFrm(int len);
 // int CMD_DisplayFrm(int len);
-// int CMD_StoredFrm(int len);
-int CMD_SD_Frm(int len); // CMD_DisplayFrm + CMD_StoredFrm
+int CMD_StoredFrm(int len);
 int CMD_ReqVer(int len);
 // int CMD_Sync(int len);
 int CMD_SetRtc(int len);
@@ -84,9 +83,9 @@ const cmd_t GRP_SIGN_CMD[] = {
 	//	{CMD_Sync, CMD_SYNC, 2},
 	//	{CMD_SetTxtFrm, CMD_SET_TXT_FRM, 0},
 	//  {CMD_SetGfxFrm, CMD_SET_GFX_FRM, 0},
-	{CMD_SD_Frm, CMD_DISP_FRM, 3},
-	{CMD_SD_Frm, CMD_STR_FRM, 3},
-	{CMD_SetSpecailFrm, CMD_SET_SPC_FRM, 2},
+	//  {CMD_DisplayFrm, CMD_DISP_FRM, 3},
+	{CMD_StoredFrm, CMD_STR_FRM, 3},
+	//  {CMD_SetSpecailFrm, CMD_SET_SPC_FRM, 2},
 };
 
 #define PTC_TX_BUF_SIZE 64
@@ -111,6 +110,18 @@ static char this_GetChar()
 #define SLV_TIMEOUT 10000
 static void this_Init()
 {
+	int rdid = 0;
+	for (int i = 0; i < 3; i++)
+	{
+		if (HAL_GPIO_ReadPin(PA0_GPIO_Port, PA0_Pin) == GPIO_PIN_SET)
+		{
+			rdid++;
+		}
+		SetMsTmr(this_tmr, 10);
+		while (!IsMsTmrExpired(this_tmr))
+			;
+	}
+	signID = (rdid >= 2) ? 0x01 : 0x02;	// If PA0 is OPEN, signID = 0x01, else signID = 0x02
 	rxCmd.rxLen = 0;
 	rxCmd.size = PTC_RX_BUF_SIZE;
 	rxCmd.buffer = ptcRxBuf;
@@ -154,11 +165,7 @@ uint8_t TaskProtc()
 		if (IsMsTmrExpired(this_tmr))
 		{ // timeout, turn off conspicuity
 			ClrMsTmr(this_tmr);
-			if (st_conspicuity)
-			{
-				st_conspicuity = 0;
-				conspicuity_changed = 1;
-			}
+			SetDispNewFrame(0);
 		}
 		PT_YIELD(this_pt);
 	}
@@ -197,13 +204,13 @@ int CMD_ReqExtSt(int len)
 	p = ptcTxBufHalf;
 	*p++ = signID;
 	*p++ = CMD_RPL_EXT_ST;
-	*p++ = rxCmd.buffer[REQ_EXT_ST_PWR_FAN]; //signExtStatus.control
+	*p++ = rxCmd.buffer[REQ_EXT_ST_PWR_FAN]; // signExtStatus.control
 	uint8_t *pDimming = &rxCmd.buffer[REQ_EXT_ST_DIMMING];
 	for (int i = 0; i < 8; i++)
 	{
 		*p++ = *pDimming++;
 	}
-	*p++ = Cnvt_PutU16(12000 /*signExtStatus.vin[AD_VIN_CHN]*/, p);
+	p = Cnvt_PutU16(12000 /*signExtStatus.vin[AD_VIN_CHN]*/, p);
 	signExtStatus.hours = Get_sys_seconds() / 3600;
 	p = Cnvt_PutU16(signExtStatus.hours, p);
 	p = Cnvt_PutU16(signExtStatus.t_board, p);
@@ -215,6 +222,7 @@ int CMD_ReqExtSt(int len)
 	return p - ptcTxBufHalf;
 }
 
+/*
 #define SET_SPC_FRM_FRMID 2
 #define SET_SPC_FRM_SPCID 6
 #define SPC_FRM_STATIC 1
@@ -246,6 +254,7 @@ int CMD_SetSpecailFrm(int len)
 	}
 	return 0;
 }
+*/
 
 static int new_frmid = -1;
 int GetDispNewFrame()
@@ -263,10 +272,10 @@ void SetDispNewFrame(int frmid)
 	}
 }
 
-#define SD_FRM_FRMID 2
-int CMD_SD_Frm(int len)
+#define Stored_FRM_FRMID 2
+int CMD_StoredFrm(int len)
 {
-	uint8_t frmid = rxCmd.buffer[SD_FRM_FRMID];
+	uint8_t frmid = rxCmd.buffer[Stored_FRM_FRMID];
 	if (frmid < FRAMES_SIZE)
 	{
 		SetDispNewFrame(frmid);
@@ -319,4 +328,4 @@ void TaskProtcInit()
 	SerialPortStartRx(this_sp);
 }
 
-#endif // GC_MODE == GC_MODE_RS485
+#endif

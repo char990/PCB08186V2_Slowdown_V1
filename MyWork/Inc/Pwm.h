@@ -16,12 +16,12 @@ extern "C"
 #include "stdint.h"
 
     /*
-     * @brief Set pwm duty of on pwm-c
-     * @param c: pwm of 0|1 ( = HC1|2)
+     * @brief Set pwm duty of on pwm-i
+     * @param i: pwm of 0|1 ( = HC1|2)
      * @param duty: 0-255, 0=LOW and 255=HIGH
      *
      */
-    void SetDuty(uint8_t c, uint8_t duty);
+    void SetDuty(uint8_t i, uint8_t duty);
 
     void SetHcAllDuty(uint8_t duty1, uint8_t duty2);
 

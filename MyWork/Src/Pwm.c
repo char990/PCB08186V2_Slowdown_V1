@@ -93,13 +93,8 @@ void SetDuty(uint8_t c, uint8_t duty)
 }
 
 #endif
-
-void SetDuty(uint8_t i, uint8_t duty)
+static void _SetDuty(uint8_t i, uint8_t duty)
 {
-	if (i >= 1)
-	{
-		return;
-	}
 	TIM_HandleTypeDef *htim = pwm[i].htim;
 	TIM_TypeDef *timInstance = htim->Instance;
 	uint32_t chn = pwm[i].chn;
@@ -129,6 +124,16 @@ void SetDuty(uint8_t i, uint8_t duty)
 	{
 		__HAL_TIM_MOE_ENABLE(htim);
 	}
+}
+
+void SetDuty(uint8_t i, uint8_t duty)
+{
+	if (i > 1)
+	{
+		return;
+	}
+	_SetDuty(i, duty);
+	TIM_TypeDef *timInstance = pwm[i].htim->Instance;
 	__disable_irq();
 	timInstance->CNT = 0;
 	timInstance->CR1 |= TIM_CR1_CEN;
@@ -137,8 +142,16 @@ void SetDuty(uint8_t i, uint8_t duty)
 
 void SetHcAllDuty(uint8_t duty1, uint8_t duty2)
 {
-	SetDuty(0, duty1);
-	SetDuty(0, duty2);
+	_SetDuty(1 - 1, duty1);
+	_SetDuty(2 - 1, duty2);
+	TIM_TypeDef *timInstance0 = pwm[0].htim->Instance;
+	TIM_TypeDef *timInstance1 = pwm[1].htim->Instance;
+	__disable_irq();
+	timInstance0->CNT = 0;
+	timInstance1->CNT = 0;
+	timInstance0->CR1 |= TIM_CR1_CEN;
+	timInstance1->CR1 |= TIM_CR1_CEN;
+	__enable_irq();
 }
 
 void PwmCallback(TIM_HandleTypeDef *htim)

@@ -48,9 +48,9 @@ static uint8_t cliRxLen;
 void PrintVersion()
 {
 #ifdef DEBUG
-	MyPrintf("\nDEBUG: Version:%04x Build:%lu\n", FW_VERSION, FW_BUILD);
+	MyPrintf("\nSign[%u]: DEBUG: Version:%04x Build:%lu\n", signID, FW_VERSION, FW_BUILD);
 #else
-	MyPrintf("\nRELEASE: Version:%04x Build:%lu\n", FW_VERSION, FW_BUILD);
+	MyPrintf("\nSign[%u]: RELEASE: Version:%04x Build:%lu\n", signID, FW_VERSION, FW_BUILD);
 #endif
 }
 
@@ -359,9 +359,28 @@ CMD_RET_t Date(int argc, char **argv)
 	return INVALID_PARAM;
 }
 
+void PrintSignStatus()
+{
+	MyPrintf("\nSign Status: "
+			 "single_led(FSt)=0x%02X, litsnsr_fault=0x%02X, current_id=%u, current_crc=0x%04X, next_id=%u, next_crc=0x%04X\n",
+			 signStatus.single_led, signStatus.litsnsr_fault,
+			 signStatus.current_id, signStatus.current_crc, signStatus.next_id, signStatus.next_crc);
+}
+
+void PrintSignExtStatus()
+{
+	MyPrintf("\nSign Ext Status: "
+			 "hours=%u, t_board=%d, lux[0]=%u, lux[1]=%u, vlux=%u, bright[0]=%u, fault_led=%u\n",
+			 signExtStatus.hours, signExtStatus.t_board, signExtStatus.lux[0], signExtStatus.lux[1],
+			 signExtStatus.vlux, signExtStatus.bright[0], signExtStatus.fault_led);
+}
+
 CMD_RET_t PrintStatus(int argc, char **argv)
 {
 	PrintVersion();
+	PrintSignStatus();
+	PrintSignExtStatus();
+	Date(1, NULL);
 	return SUCCESS_WITHOUT_MSG;
 }
 
@@ -379,7 +398,7 @@ command_t CLI_CMD[] =
 		 "\r\n  Print status"},
 		{"date", Date,
 		 "\r\nDate [dd/MM/yy hh:mm:ss]"
-		 "\r\n  Print RTC & temprature or Set RTC"},
+		 "\r\n  Print RTC+temprature or Set RTC"},
 
 		/*********************** test ***********************/
 		{"testpwm", TestPwm,

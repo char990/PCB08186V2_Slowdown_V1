@@ -15,7 +15,7 @@
 
 int Get_mv(adcval_t adv, adcval_t ref)
 {
-	//return adv * 3300UL / 4096;
+	// return adv * 3300UL / 4096;
 	return (ref == 0) ? (0) : ((VREFINT_CAL_VREF * (*VREFINT_CAL_ADDR) / 4096) * adv / ref);
 }
 
@@ -36,24 +36,31 @@ void AdcCalibration()
 	HAL_ADCEx_Calibration_Start(&hadc);
 }
 
-#define PB15_EN
+
 int RunAdc()
 {
 	ENTER_CRITICAL();
-    pwm_status[0] = 0;
-    pwm_status[1] = 0;
-    EXIT_CRITICAL();
+	pwm_status[0] = 0;
+#if HC2_ADC_EN == 1
+	pwm_status[1] = 0;
+#endif
+	EXIT_CRITICAL();
 
-    adc_t *adc = &scanAdc;
+	adc_t *adc = &scanAdc;
 	uint32_t timeout_us = ADC_TIMEOUT_US;
 	adc->adc_st = 0;
 	int rtv = 0;
 
-    while (pwm_status[0] == 0 && pwm_status[1] == 0)
-        ;
-    Delay_us(ADC_DELAY_US);
-#ifdef PB15_EN
-    SetPB(15);
+	while (pwm_status[0] == 0
+#if HC2_ADC_EN == 1
+		   && pwm_status[1] == 0
+#endif
+	)
+	{
+	};
+	Delay_us(ADC_DELAY_US);
+#if PB15_EN == 1
+	SetPB(15);
 #endif
 	if (HAL_OK != HAL_ADC_Start_DMA(adc->hadc, (uint32_t *)(adc->dma_buf), adc->chs))
 	{
@@ -76,8 +83,8 @@ int RunAdc()
 			rtv = 1;
 		}
 	}
-#ifdef PB15_EN
-    ClrPB(15);
+#if PB15_EN == 1
+	ClrPB(15);
 #endif
 	if (rtv)
 	{

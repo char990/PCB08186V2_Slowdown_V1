@@ -12,17 +12,16 @@
 extern "C" {
 #endif
 
-#if GC_MODE == GC_MODE_IO
+#include "Config.h"
 #include "MyPt.h"
 
 void TaskInputsInit();
 uint8_t TaskInputs();
 
+#if GC_MODE == GC_MODE_IO
 int GetDispNewFrame();
 void SetDispNewFrame(int frmid);
-
 #endif
-
 
 #ifdef __cplusplus
 }

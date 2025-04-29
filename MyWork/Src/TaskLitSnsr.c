@@ -13,6 +13,7 @@
 #include "twilight.h"
 #include "SignStatus.h"
 #include "Debounce.h"
+#include "Config.h"
 
 #define LIT_DBN_CNT 5
 
@@ -40,17 +41,18 @@ msTmr_t tmrLit;
 #define opt4001hi2c (&hi2c1)
 static uint8_t opt4001addr[2] = {OPT4001_AD0, OPT4001_AD1};
 
-void TaskLitSnsrInit()
-{
-    PT_Reset(this_pt);
-}
-
 void SetBright(uint8_t bright)
 {
     for (int i = 0; i < 4; i++)
     {
         signExtStatus.bright[i] = bright;
     }
+}
+
+void TaskLitSnsrInit()
+{
+    PT_Reset(this_pt);
+    SetBright(24); // default level = 8
 }
 
 uint8_t TaskLitSnsr()

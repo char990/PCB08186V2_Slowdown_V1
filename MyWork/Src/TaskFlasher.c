@@ -17,17 +17,26 @@
 #include "SignStatus.h"
 #include "Debounce.h"
 
-#define PORT_HC1 0
-#define PORT_HC2 1
-
 #define ONE_PLUS_PWM (0x80)
 #define NO_ADC (0)
 #define RUN_ADC (1)
 
-// Flasher current range(mA)
-#define FC_MIN 500
-#define FC_MAX 900
 #define FC_DNB_CNT 5
+
+enum conspicuity_state_t
+{
+    CONSPICUITY_ST_ALL_OFF = 0,
+    CONSPICUITY_ST_FLASH_ON = 1,
+    CONSPICUITY_ST_FLASH_OFF = 2,
+    CONSPICUITY_ST_ALL_ON = 3,
+};
+
+enum frma_conspicuity_setting_t
+{
+    FRM_CONSPICUITY_OFF = 0,
+    FRM_CONSPICUITY_ALL_FLASH = 4,
+    FRM_CONSPICUITY_ALL_ON = 5,
+};
 
 myPt_t ptFlasher;
 #define this_pt (&ptFlasher)
@@ -41,14 +50,14 @@ msTmr_t tmrAdcCalibration;
 
 debounce_t dbnCurrent;
 
+uint8_t st_conspicuity;
+
 void TaskFlasherInit()
 {
+    PT_Reset(this_pt);
     SetDuty(PORT_HC1, 0);
     SetDuty(PORT_HC2, 0);
-    PT_Reset(this_pt);
-
-    st_conspicuity = 0;
-    conspicuity_changed = 0;
+    st_conspicuity = CONSPICUITY_ST_ALL_OFF;
     AdcInit();
     AdcCalibration();
     SetMsTmr(&tmrAdcCalibration, CALIBRATION_TIME);
@@ -96,28 +105,12 @@ void SetLocalFlasher(uint8_t adc_flag, uint8_t pwm_b1b0)
     }
 }
 
-enum conspicuity_state_t
-{
-    CONSPICUITY_ST_ALL_OFF = 0,
-    CONSPICUITY_ST_FLASH_ON = 1,
-    CONSPICUITY_ST_FLASH_OFF = 2,
-    CONSPICUITY_ST_ALL_ON = 3,
-};
-
 void CheckNewFrame()
 {
     int newFrm = GetDispNewFrame();
-    if (newFrm >= 0)
+    if (newFrm >= 0 && newFrm < FRAMES_SIZE)
     {
-        if (newFrm == 1 && frames[1].conspicuity == CONSPICUITY_ALL_FLASH)
-        {
-            st_conspicuity = CONSPICUITY_ST_FLASH_OFF;
-        }
-        else if (newFrm == 1 && frames[1].conspicuity == CONSPICUITY_ALL_ON)
-        {
-            st_conspicuity = CONSPICUITY_ST_ALL_ON;
-        }
-        else
+        if (newFrm == 0)
         {
             if (st_conspicuity != CONSPICUITY_ST_ALL_OFF)
             {
@@ -126,6 +119,11 @@ void CheckNewFrame()
             st_conspicuity = CONSPICUITY_ST_ALL_OFF;
             SetLocalFlasher(NO_ADC, 0);
         }
+        else
+        {
+            st_conspicuity = (frames[newFrm].conspicuity) == FRM_CONSPICUITY_ALL_FLASH ? CONSPICUITY_ST_FLASH_OFF : CONSPICUITY_ST_ALL_ON;
+            conspicuity_0_cnt = 0;
+        }
         SetDispNewFrame(-1);
     }
 }
@@ -133,8 +131,6 @@ void CheckNewFrame()
 uint8_t TaskFlasher()
 {
     PT_BEGIN(this_pt);
-    // conspicuity_changed = 1;
-    // st_conspicuity = 1;
     for (int i = 0; i < FC_DNB_CNT * 2; i++)
     {
         SetLocalFlasher(RUN_ADC, (1 << PORT_HC1));
@@ -144,10 +140,11 @@ uint8_t TaskFlasher()
             break;
         }
     }
+    SetLocalFlasher(NO_ADC, 0);
     for (;;)
     {
         wdt |= WDT_TASK_FL;
-        SetMsTmr(&tmrFlasher, 500);
+        SetMsTmr(this_tmr, 500);
         CheckNewFrame();
         if (st_conspicuity == CONSPICUITY_ST_ALL_OFF)
         { // off
@@ -160,7 +157,6 @@ uint8_t TaskFlasher()
         else if (st_conspicuity == CONSPICUITY_ST_ALL_ON)
         { // on
             SetLocalFlasher(RUN_ADC, (1 << PORT_HC1));
-            st_conspicuity = CONSPICUITY_ST_FLASH_OFF;
         }
         else
         { // Flash
@@ -175,7 +171,7 @@ uint8_t TaskFlasher()
                 st_conspicuity = CONSPICUITY_ST_FLASH_OFF;
             }
         }
-        PT_WAIT_TILL(this_pt, IsMsTmrExpired(this_tmr));
+        PT_WAIT_UNTIL(this_pt, IsMsTmrExpired(this_tmr));
     }
     PT_END(this_pt);
 }

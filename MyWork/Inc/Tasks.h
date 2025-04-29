@@ -28,9 +28,6 @@ extern "C"
 
     void TasksRun();
 
-    extern uint8_t conspicuity_changed;
-    extern uint8_t st_conspicuity;
-
 #define LUX_FRONT 0
 #define LUX_BACK 1
 

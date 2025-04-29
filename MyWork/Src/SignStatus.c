@@ -12,17 +12,12 @@ signStatus_t signStatus;
 
 signExtStatus_t signExtStatus;
 
-frame_t frames[FRAMES_SIZE];
-
-void ClearStoredFrm()
-{
-    for (int i = 0; i < FRAMES_SIZE; i++)
+const frame_t frames[FRAMES_SIZE] =
     {
-        frames[i].crc = 0;
-        frames[i].frmSt = 0;
-        frames[i].conspicuity = 0;
-    }
-}
+        {CONSPICUITY_ALL_OFF, 0},        // frame 0
+        {CONSPICUITY_ALL_ON, 0x5A11},    // frame 1
+        {CONSPICUITY_ALL_FLASH, 0x5A22}, // frame 2
+};
 
 uint8_t GetFaultSt()
 {
