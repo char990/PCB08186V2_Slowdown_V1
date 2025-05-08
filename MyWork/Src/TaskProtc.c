@@ -121,7 +121,7 @@ static void this_Init()
 		while (!IsMsTmrExpired(this_tmr))
 			;
 	}
-	signID = (rdid >= 2) ? 0x01 : 0x02;	// If PA0 is OPEN, signID = 0x01, else signID = 0x02
+	signID = (rdid >= 2) ? 0x01 : 0x02; // If PA0 is OPEN, signID = 0x01, else signID = 0x02
 	rxCmd.rxLen = 0;
 	rxCmd.size = PTC_RX_BUF_SIZE;
 	rxCmd.buffer = ptcRxBuf;
@@ -162,7 +162,7 @@ uint8_t TaskProtc()
 			}
 			rxCmd.rxLen = 0;
 		}
-		if (IsMsTmrExpired(this_tmr))
+		if (IsMsTmrExpired(this_tmr) && signStatus.self_test == 0)
 		{ // timeout, turn off conspicuity
 			ClrMsTmr(this_tmr);
 			SetDispNewFrame(0);
@@ -275,10 +275,13 @@ void SetDispNewFrame(int frmid)
 #define Stored_FRM_FRMID 2
 int CMD_StoredFrm(int len)
 {
-	uint8_t frmid = rxCmd.buffer[Stored_FRM_FRMID];
-	if (frmid < FRAMES_SIZE)
+	if (signStatus.self_test == 0)
 	{
-		SetDispNewFrame(frmid);
+		uint8_t frmid = rxCmd.buffer[Stored_FRM_FRMID];
+		if (frmid < FRAMES_SIZE)
+		{
+			SetDispNewFrame(frmid);
+		}
 	}
 	return 0;
 }

@@ -84,7 +84,6 @@ void ProcessPB()
 
 debounce_t inputBtn;
 
-
 #define BTN1_INBIT (0)
 #define BTN1_MASK (1 << BTN1_INBIT)
 
@@ -92,10 +91,23 @@ uint16_t PIN_BTN[1] = {BTN1_Pin};
 
 void ProcessBtn()
 {
+	extern void SetDispNewFrame(int frmid);
 	DbnCheck(&inputBtn, RdInputs(GPIOA, PIN_BTN, COUNT_OF_ARRAY(PIN_BTN)));
 	if (IsDbnValid(&inputBtn) && inputBtn.event)
 	{
-
+		if (inputBtn.rising == 1)
+		{
+			if (signStatus.self_test)
+			{
+				SetDispNewFrame(0);
+				signStatus.self_test = 0;
+			}
+			else
+			{
+				SetDispNewFrame(2);
+				signStatus.self_test = 1;
+			}
+		}
 		DbnClrEvt(&inputBtn);
 	}
 }
@@ -119,9 +131,9 @@ uint8_t TaskInputs()
 static void this_Init()
 {
 #if GC_MODE == GC_MODE_IO
-	DbnInit(&inputPB, 5, 0xFF); // 5*10ms debounce time
+	DbnInit(&inputPB, 5, (1 << COUNT_OF_ARRAY(PIN_PB)) - 1); // 5*10ms debounce time
 #endif
-	DbnInit(&inputBtn, 3, 0xFF); // 3*10ms debounce time
+	DbnInit(&inputBtn, 3, (1 << COUNT_OF_ARRAY(PIN_BTN)) - 1); // 3*10ms debounce time
 }
 
 void TaskInputsInit()
